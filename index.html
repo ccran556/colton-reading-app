@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Colton's Reading App</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#5b4bb5">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+</head>
+<body>
+    <div class="app">
+        <header class="header">
+            <h1 class="logo">Colton's <span class="logo-accent">App</span></h1>
+            <div class="header-right">
+                <div class="stats">
+                    <div class="stat">
+                        <span class="stat-value" id="streak">0</span>
+                        <span class="stat-label">Streak</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-value" id="score">0</span>
+                        <span class="stat-label">Score</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-value" id="level">1</span>
+                        <span class="stat-label">Level</span>
+                    </div>
+                </div>
+                <button class="btn btn-settings" id="btn-badges" aria-label="Badges">🏆</button>
+                <button class="btn btn-settings" id="btn-settings" aria-label="Settings">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+                </button>
+            </div>
+        </header>
+
+        <main class="main">
+            <!-- Start Screen -->
+            <div id="start-screen" class="screen active">
+                <!-- Mode Tabs -->
+                <div class="mode-tabs">
+                    <button class="mode-tab active" data-mode="spell">Spell It</button>
+                    <button class="mode-tab" data-mode="flash">Flashcards</button>
+                    <button class="mode-tab" data-mode="scramble">Scramble</button>
+                    <button class="mode-tab" data-mode="lessons">Lessons</button>
+                    <button class="mode-tab" data-mode="read">Read It</button>
+                </div>
+
+                <!-- AI Recommendation -->
+                <div class="ai-recommendation hidden" id="ai-recommendation">
+                    <div class="ai-recommendation-icon">💡</div>
+                    <p class="ai-recommendation-text" id="ai-recommendation-text"></p>
+                </div>
+
+                <!-- Review Banner (shown when words are due) -->
+                <div class="review-banner hidden" id="review-banner">
+                    <div class="review-banner-content">
+                        <span class="review-banner-icon">🔄</span>
+                        <div class="review-banner-text">
+                            <strong id="review-count">0</strong> words ready for review
+                        </div>
+                    </div>
+                    <button class="btn btn-review" id="btn-start-review">Review Now</button>
+                </div>
+
+                <!-- Daily Challenge -->
+                <div class="daily-challenge hidden" id="daily-challenge">
+                    <div class="daily-challenge-header">
+                        <span class="daily-challenge-icon">📅</span>
+                        <span class="daily-challenge-title">Daily Challenge</span>
+                    </div>
+                    <p class="daily-challenge-word" id="daily-word"></p>
+                    <p class="daily-challenge-hint" id="daily-hint"></p>
+                    <button class="btn btn-primary btn-sm" id="btn-daily-start">Try It</button>
+                    <span class="daily-challenge-done hidden" id="daily-done">&#10003; Completed today!</span>
+                </div>
+
+                <h2 class="screen-title">Choose a Category</h2>
+                <div class="category-grid" id="category-grid"></div>
+            </div>
+
+            <!-- Flashcard Screen -->
+            <div id="flash-screen" class="screen">
+                <div class="game-top">
+                    <button class="btn btn-back" id="btn-flash-back" aria-label="Go back">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                    </button>
+                    <div class="category-label" id="flash-category-label"></div>
+                    <div class="word-counter" id="flash-counter"></div>
+                </div>
+
+                <!-- Flashcard -->
+                <div class="flashcard-container">
+                    <div class="flashcard" id="flashcard">
+                        <div class="flashcard-front" id="flashcard-front">
+                            <button class="btn btn-hear flashcard-hear" id="btn-flash-hear" aria-label="Hear the word">
+                                <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
+                            </button>
+                            <div class="flashcard-word" id="flash-word"></div>
+                            <div class="flashcard-hint" id="flash-hint"></div>
+                            <p class="flashcard-tap">tap card or press Space to flip</p>
+                        </div>
+                        <div class="flashcard-back" id="flashcard-back">
+                            <div class="flashcard-syllables" id="flash-syllables"></div>
+                            <div class="flashcard-spelling" id="flash-spelling"></div>
+                            <div class="flashcard-hint" id="flash-back-hint"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Flashcard Spell-Along -->
+                <div class="flash-spell-along" id="flash-spell-along">
+                    <p class="flash-spell-label">Type each letter as you hear it:</p>
+                    <div class="flash-spell-letters" id="flash-spell-letters"></div>
+                    <div class="flash-spell-input-row">
+                        <input type="text" class="flash-spell-input" id="flash-spell-input" maxlength="1" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="?">
+                    </div>
+                    <p class="flash-spell-result hidden" id="flash-spell-result"></p>
+                </div>
+
+                <!-- Flashcard Rating -->
+                <div class="flash-rating" id="flash-rating">
+                    <p class="flash-rating-label">How'd that one feel?</p>
+                    <div class="flash-rating-buttons">
+                        <button class="btn btn-rating btn-rating-hard" data-rating="hard">Tricky</button>
+                        <button class="btn btn-rating btn-rating-ok" data-rating="ok">Okay</button>
+                        <button class="btn btn-rating btn-rating-easy" data-rating="easy">Easy</button>
+                    </div>
+                </div>
+
+                <!-- AI Tutor Feedback (Flashcards) -->
+                <div class="ai-feedback hidden" id="flash-ai-feedback">
+                    <div class="ai-feedback-avatar">🤖</div>
+                    <div class="ai-feedback-text" id="flash-ai-feedback-text"></div>
+                </div>
+
+                <!-- Flash Continue Button (shown after AI feedback) -->
+                <div class="flash-continue hidden" id="flash-continue">
+                    <button class="btn btn-primary" id="btn-flash-continue">Continue &rarr;</button>
+                </div>
+            </div>
+
+            <!-- Lesson Screen -->
+            <div id="lesson-screen" class="screen">
+                <div class="game-top">
+                    <button class="btn btn-back" id="btn-lesson-back" aria-label="Go back">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                    </button>
+                    <div class="category-label" id="lesson-title-bar"></div>
+                    <div class="word-counter" id="lesson-step-counter"></div>
+                </div>
+
+                <!-- Step: Teach -->
+                <div id="lesson-teach" class="lesson-section">
+                    <div class="lesson-rule-card">
+                        <h3 class="lesson-rule-heading">The Rule</h3>
+                        <p class="lesson-rule-text" id="lesson-rule-text"></p>
+                    </div>
+                    <div class="lesson-examples" id="lesson-examples"></div>
+                    <button class="btn btn-primary lesson-start-btn" id="btn-lesson-practice">Start Practice</button>
+                </div>
+
+                <!-- Step: Enhanced Teach (multi-slide, for lessons with teachSlides) -->
+                <div id="lesson-teach-enhanced" class="lesson-section hidden">
+                    <div class="teach-slide-counter" id="teach-slide-counter">1 / 6</div>
+                    <div class="teach-slide" id="teach-slide">
+                        <h3 class="teach-slide-title" id="teach-slide-title"></h3>
+                        <p class="teach-slide-content" id="teach-slide-content"></p>
+                        <div class="teach-slide-diagram" id="teach-slide-diagram"></div>
+                    </div>
+                    <div class="teach-slide-nav">
+                        <button class="btn btn-back" id="btn-teach-prev">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                            Back
+                        </button>
+                        <button class="btn btn-primary" id="btn-teach-next">Next &rarr;</button>
+                    </div>
+                </div>
+
+                <!-- Step: Practice (reuses the game mechanics) -->
+                <div id="lesson-practice" class="lesson-section hidden">
+                    <div class="hint-area">
+                        <button class="btn btn-hear" id="btn-lesson-hear" aria-label="Hear the word">
+                            <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
+                            <span>Hear Word</span>
+                        </button>
+                        <div class="hint-text" id="lesson-hint-text"></div>
+                        <button class="btn btn-hint" id="btn-lesson-hint">Show Syllables</button>
+                    </div>
+
+                    <div class="drop-zone" id="lesson-drop-zone">
+                        <div class="drop-slots" id="lesson-drop-slots"></div>
+                        <p class="drop-placeholder" id="lesson-drop-placeholder">Drop your letters here — you got this!</p>
+                    </div>
+
+                    <div class="letter-bank" id="lesson-letter-bank"></div>
+
+                    <div class="lesson-actions">
+                        <button class="btn btn-clear" id="btn-lesson-clear">Clear</button>
+                        <button class="btn btn-check" id="btn-lesson-check">Check</button>
+                    </div>
+
+                    <div class="feedback hidden" id="lesson-feedback"></div>
+
+                    <!-- AI Tutor Feedback (Lessons) -->
+                    <div class="ai-feedback hidden" id="lesson-ai-feedback">
+                        <div class="ai-feedback-avatar">🤖</div>
+                        <div class="ai-feedback-text" id="lesson-ai-feedback-text"></div>
+                    </div>
+
+                    <!-- Sentence Context (Lessons) -->
+                    <div class="sentence-display hidden" id="lesson-sentence-display">
+                        <p class="sentence-label">Used in a sentence:</p>
+                        <p class="sentence-text" id="lesson-sentence-text"></p>
+                    </div>
+                </div>
+
+                <!-- Step: Quiz -->
+                <div id="lesson-quiz" class="lesson-section hidden">
+                    <div class="quiz-header">
+                        <h3 class="quiz-title">Quiz Time!</h3>
+                        <p class="quiz-subtitle" id="quiz-subtitle">Let's see what you remember. Spell each word without any hints.</p>
+                        <div class="word-counter" id="quiz-counter"></div>
+                    </div>
+
+                    <div class="quiz-word-prompt" id="quiz-word-prompt"></div>
+
+                    <div class="drop-zone" id="quiz-drop-zone">
+                        <div class="drop-slots" id="quiz-drop-slots"></div>
+                        <p class="drop-placeholder" id="quiz-drop-placeholder">Spell the word here</p>
+                    </div>
+
+                    <div class="letter-bank" id="quiz-letter-bank"></div>
+
+                    <div class="lesson-actions quiz-actions">
+                        <button class="btn btn-clear" id="btn-quiz-clear">Clear</button>
+                        <button class="btn btn-check" id="btn-quiz-check">Check</button>
+                    </div>
+
+                    <div class="feedback hidden" id="quiz-feedback"></div>
+                </div>
+
+                <!-- Step: Lesson Complete -->
+                <div id="lesson-complete" class="lesson-section hidden">
+                    <div class="result-card">
+                        <h2 class="result-title" id="lesson-result-title"></h2>
+                        <div class="result-stats" id="lesson-result-stats"></div>
+
+                        <!-- Quiz Grade -->
+                        <div class="quiz-grade-card" id="quiz-grade-card">
+                            <h3 class="quiz-grade-heading">Quiz Grade</h3>
+                            <div class="quiz-grade-display" id="quiz-grade-display"></div>
+                            <p class="quiz-grade-detail" id="quiz-grade-detail"></p>
+                        </div>
+
+                        <!-- Struggle Patterns -->
+                        <div class="struggle-patterns hidden" id="struggle-patterns">
+                            <h3 class="struggle-heading">Patterns to Keep Practicing</h3>
+                            <ul class="struggle-list" id="struggle-list"></ul>
+                        </div>
+
+                        <!-- AI Session Insight (Lessons) -->
+                        <div class="ai-insight hidden" id="lesson-ai-insight">
+                            <div class="ai-insight-header">
+                                <span class="ai-insight-icon">🤖</span>
+                                <span class="ai-insight-label">Your Coach Says</span>
+                            </div>
+                            <p class="ai-insight-text" id="lesson-ai-insight-text"></p>
+                        </div>
+
+                        <div class="result-actions">
+                            <button class="btn btn-primary" id="btn-next-lesson">Next Lesson</button>
+                            <button class="btn btn-back" id="btn-lesson-list">All Lessons</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Scramble Screen -->
+            <div id="scramble-screen" class="screen">
+                <div class="game-top">
+                    <button class="btn btn-back" id="btn-scramble-back" aria-label="Go back">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                    </button>
+                    <div class="category-label" id="scramble-category-label"></div>
+                    <div class="word-counter" id="scramble-counter"></div>
+                </div>
+
+                <div class="hint-area">
+                    <button class="btn btn-hear" id="btn-scramble-hear" aria-label="Hear the word">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
+                        <span>Hear Word</span>
+                    </button>
+                    <div class="hint-text" id="scramble-hint-text"></div>
+                </div>
+
+                <!-- Scrambled Letters Display -->
+                <div class="scramble-jumble" id="scramble-jumble"></div>
+
+                <!-- Type Answer -->
+                <div class="scramble-answer-area">
+                    <input type="text" id="scramble-input" class="scramble-input" placeholder="Type the word..." autocomplete="off" spellcheck="false" autocapitalize="off">
+                    <button class="btn btn-check" id="btn-scramble-check">Check</button>
+                </div>
+
+                <div class="feedback hidden" id="scramble-feedback"></div>
+
+                <!-- AI Tutor Feedback (Scramble) -->
+                <div class="ai-feedback hidden" id="scramble-ai-feedback">
+                    <div class="ai-feedback-avatar">🤖</div>
+                    <div class="ai-feedback-text" id="scramble-ai-feedback-text"></div>
+                </div>
+
+                <!-- Sentence Context (Scramble) -->
+                <div class="sentence-display hidden" id="scramble-sentence-display">
+                    <p class="sentence-label">Used in a sentence:</p>
+                    <p class="sentence-text" id="scramble-sentence-text"></p>
+                </div>
+            </div>
+
+            <!-- Game Screen -->
+            <div id="game-screen" class="screen">
+                <div class="game-top">
+                    <button class="btn btn-back" id="btn-back" aria-label="Go back">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                    </button>
+                    <div class="category-label" id="category-label"></div>
+                    <div class="word-counter" id="word-counter"></div>
+                </div>
+
+                <!-- Hint Area -->
+                <div class="hint-area">
+                    <button class="btn btn-hear" id="btn-hear" aria-label="Hear the word">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
+                        <span>Hear Word</span>
+                    </button>
+                    <div class="hint-text" id="hint-text"></div>
+                    <button class="btn btn-hint" id="btn-hint">Show Hint</button>
+                </div>
+
+                <!-- Drop Zone -->
+                <div class="drop-zone" id="drop-zone">
+                    <div class="drop-slots" id="drop-slots"></div>
+                    <p class="drop-placeholder" id="drop-placeholder">Drop your letters here — you got this!</p>
+                </div>
+
+                <!-- Letter Bank -->
+                <div class="letter-bank" id="letter-bank"></div>
+
+                <!-- Action Buttons -->
+                <div class="actions">
+                    <button class="btn btn-clear" id="btn-clear">Clear</button>
+                    <button class="btn btn-check" id="btn-check">Check</button>
+                </div>
+
+                <!-- Feedback -->
+                <div class="feedback hidden" id="feedback"></div>
+
+                <!-- AI Tutor Feedback -->
+                <div class="ai-feedback hidden" id="ai-feedback">
+                    <div class="ai-feedback-avatar">🤖</div>
+                    <div class="ai-feedback-text" id="ai-feedback-text"></div>
+                </div>
+
+                <!-- Sentence Context (shown after correct) -->
+                <div class="sentence-display hidden" id="sentence-display">
+                    <p class="sentence-label">Used in a sentence:</p>
+                    <p class="sentence-text" id="sentence-text"></p>
+                </div>
+            </div>
+
+            <!-- Result Screen -->
+            <div id="result-screen" class="screen">
+                <div class="result-card">
+                    <h2 class="result-title" id="result-title"></h2>
+                    <div class="result-stats" id="result-stats"></div>
+                    <!-- AI Session Insight -->
+                    <div class="ai-insight hidden" id="ai-session-insight">
+                        <div class="ai-insight-header">
+                            <span class="ai-insight-icon">🤖</span>
+                            <span class="ai-insight-label">Your Coach Says</span>
+                        </div>
+                        <p class="ai-insight-text" id="ai-session-insight-text"></p>
+                    </div>
+
+                    <div class="result-actions">
+                        <button class="btn btn-primary" id="btn-replay">Play Again</button>
+                        <button class="btn btn-back" id="btn-categories">All Categories</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Spelling Bee Screen -->
+            <div id="spellingbee-screen" class="screen">
+                <div class="game-top">
+                    <button class="btn btn-back" id="btn-bee-back" aria-label="Go back">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                    </button>
+                    <div class="category-label" id="bee-title">&#x1f41d; Spelling Bee</div>
+                    <div class="word-counter" id="bee-counter">0 / 0</div>
+                </div>
+
+                <div class="bee-announcer" id="bee-announcer">
+                    <div class="bee-prompt" id="bee-prompt"></div>
+                    <div class="bee-definition" id="bee-definition"></div>
+                    <div class="bee-sentence" id="bee-sentence"></div>
+                </div>
+
+                <div class="bee-replay-controls">
+                    <button class="btn btn-hear" id="btn-bee-word" aria-label="Hear the word">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
+                        <span>Word</span>
+                    </button>
+                    <button class="btn btn-hear" id="btn-bee-definition" aria-label="Hear the definition">&#x1f4d6; Definition</button>
+                    <button class="btn btn-hear" id="btn-bee-sentence" aria-label="Hear the sentence">&#x1f4dd; Sentence</button>
+                </div>
+
+                <div class="bee-input-area">
+                    <input type="text" id="bee-input" class="bee-text-input" placeholder="Type your spelling..." autocomplete="off" autocapitalize="off" spellcheck="false">
+                    <button class="btn btn-check" id="btn-bee-submit">Submit</button>
+                </div>
+
+                <div class="bee-feedback hidden" id="bee-feedback"></div>
+            </div>
+
+            <!-- Spelling Bee Results Screen -->
+            <div id="bee-result-screen" class="screen">
+                <div class="result-card">
+                    <h2 class="result-title" id="bee-result-title"></h2>
+                    <div class="result-stats" id="bee-result-stats"></div>
+                    <div class="quiz-grade-card" id="bee-grade-card">
+                        <h3 class="quiz-grade-heading">Spelling Bee Grade</h3>
+                        <div class="quiz-grade-display" id="bee-grade-display"></div>
+                        <p class="quiz-grade-detail" id="bee-grade-detail"></p>
+                    </div>
+                    <div class="bee-word-review" id="bee-word-review"></div>
+                    <div class="result-actions">
+                        <button class="btn btn-primary" id="btn-bee-done">Back to Menu</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Reading Screen -->
+            <div id="read-screen" class="screen">
+                <div class="game-top">
+                    <button class="btn btn-back" id="btn-read-back" aria-label="Go back">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                    </button>
+                    <div class="category-label" id="read-category-label">Reading</div>
+                    <div class="counter" id="read-counter">0 / 0</div>
+                </div>
+
+                <!-- Reading Sub-Mode Selector -->
+                <div class="read-submode-selector" id="read-submode-selector">
+                    <button class="read-submode-btn active" data-submode="read-listen">🎤 Read &amp; Listen</button>
+                    <button class="read-submode-btn" data-submode="just-listen">👂 Just Listen</button>
+                </div>
+
+                <!-- Listen First toggle (Read & Listen mode only) -->
+                <div class="read-mode-toggle" id="read-listen-first-container">
+                    <label class="toggle-label" for="read-listen-first">
+                        <input type="checkbox" id="read-listen-first" checked>
+                        <span class="toggle-switch"></span>
+                        Listen first, then read
+                    </label>
+                </div>
+
+                <!-- Passage Display (Read & Listen mode) -->
+                <div class="passage-container" id="passage-container">
+                    <h3 class="passage-title" id="passage-title"></h3>
+                    <div class="passage-text" id="passage-text"></div>
+                </div>
+
+                <!-- Current Sentence (large, focused — Read & Listen mode) -->
+                <div class="read-sentence-focus" id="read-sentence-focus">
+                    <p class="read-current-sentence" id="read-current-sentence"></p>
+                </div>
+
+                <!-- Mic Controls (Read & Listen mode) -->
+                <div class="read-controls" id="read-controls">
+                    <button class="btn btn-hear" id="btn-read-listen" aria-label="Listen to sentence">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
+                        <span>Listen</span>
+                    </button>
+                    <button class="btn btn-mic" id="btn-read-mic" aria-label="Start reading">
+                        <span class="mic-icon">🎤</span>
+                        <span id="mic-label">Your Turn — Tap to Read</span>
+                    </button>
+                    <button class="btn btn-done hidden" id="btn-read-done" aria-label="Done reading">✓ I'm Done</button>
+                </div>
+
+                <!-- Real-time transcript -->
+                <div class="read-transcript hidden" id="read-transcript">
+                    <p class="read-transcript-text" id="read-transcript-text"></p>
+                </div>
+
+                <!-- Word-by-word feedback (shown after each sentence) -->
+                <div class="read-word-feedback hidden" id="read-word-feedback"></div>
+
+                <!-- Sentence Actions -->
+                <div class="read-actions hidden" id="read-actions">
+                    <button class="btn btn-primary" id="btn-read-next">Next Sentence &rarr;</button>
+                    <button class="btn btn-clear" id="btn-read-skip">Skip This One</button>
+                </div>
+
+                <!-- AI Feedback -->
+                <div class="ai-feedback hidden" id="read-ai-feedback">
+                    <div class="ai-feedback-avatar">🤖</div>
+                    <div class="ai-feedback-text" id="read-ai-feedback-text"></div>
+                </div>
+
+                <!-- Manual fallback input (shown if speech recognition unavailable) -->
+                <div class="read-manual hidden" id="read-manual">
+                    <p class="read-manual-label">Type what you read:</p>
+                    <input type="text" class="read-manual-input" id="read-manual-input" placeholder="Type the sentence here...">
+                    <button class="btn btn-check" id="btn-read-manual-check">Check</button>
+                </div>
+
+                <!-- Just Listen: Full passage with word-level highlighting -->
+                <div class="just-listen-container hidden" id="just-listen-container">
+                    <h3 class="passage-title" id="just-listen-title"></h3>
+                    <div class="just-listen-text" id="just-listen-text"></div>
+                </div>
+
+                <!-- Just Listen Controls -->
+                <div class="just-listen-controls hidden" id="just-listen-controls">
+                    <p class="just-listen-start-hint" id="just-listen-start-hint">Tap any sentence to start from there</p>
+                    <button class="btn btn-primary btn-lg" id="btn-just-listen-play">&#9654; Start Listening</button>
+                    <div class="just-listen-progress">
+                        <div class="just-listen-progress-bar" id="just-listen-progress-bar"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Reading Result Screen -->
+            <div id="read-result-screen" class="screen">
+                <div class="result-card">
+                    <h2 class="result-title" id="read-result-title"></h2>
+                    <div class="result-stats" id="read-result-stats"></div>
+
+                    <!-- Struggled words list -->
+                    <div class="read-struggled hidden" id="read-struggled">
+                        <h3 class="read-struggled-title">Words to Practice</h3>
+                        <div class="read-struggled-words" id="read-struggled-words"></div>
+                    </div>
+
+                    <!-- AI Coach Insight -->
+                    <div class="ai-insight hidden" id="read-ai-insight">
+                        <div class="ai-insight-header">
+                            <span class="ai-insight-icon">🤖</span>
+                            <span class="ai-insight-label">Your Coach Says</span>
+                        </div>
+                        <p class="ai-insight-text" id="read-ai-insight-text"></p>
+                    </div>
+
+                    <div class="result-actions">
+                        <button class="btn btn-primary" id="btn-read-review">📖 Let's Review These Words</button>
+                        <button class="btn btn-primary" id="btn-read-practice">Practice These Words</button>
+                        <button class="btn btn-primary" id="btn-read-again">Read Another</button>
+                        <button class="btn btn-back" id="btn-read-categories">All Passages</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Word Review Screen (after reading) -->
+            <div id="word-review-screen" class="screen">
+                <div class="game-top">
+                    <button class="btn btn-back" id="btn-review-back" aria-label="Go back">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                    </button>
+                    <div class="category-label" id="review-title">📖 Let's Review</div>
+                    <div class="word-counter" id="review-counter">1 / 1</div>
+                </div>
+
+                <div class="review-card" id="review-card">
+                    <div class="review-word-display" id="review-word-display"></div>
+                    <div class="review-what-heard" id="review-what-heard"></div>
+                    <div class="review-syllables" id="review-syllables"></div>
+                    <div class="review-hint" id="review-hint"></div>
+                    <div class="review-sentence" id="review-sentence"></div>
+                </div>
+
+                <div class="review-listen-btns">
+                    <button class="btn btn-hear" id="btn-review-hear">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
+                        Hear Word
+                    </button>
+                    <button class="btn btn-hear" id="btn-review-spell">🔤 Spell It Out</button>
+                    <button class="btn btn-hear" id="btn-review-sentence">📝 Hear Sentence</button>
+                </div>
+
+                <div class="review-nav">
+                    <button class="btn btn-back" id="btn-review-prev">← Previous</button>
+                    <button class="btn btn-primary" id="btn-review-next">Next Word →</button>
+                </div>
+            </div>
+
+            <!-- Dashboard Screen -->
+            <div id="dashboard-screen" class="screen">
+                <div class="game-top">
+                    <button class="btn btn-back" id="btn-dashboard-back" aria-label="Go back">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                    </button>
+                    <div class="category-label">📊 Progress Dashboard</div>
+                </div>
+                <div class="dashboard-content" id="dashboard-content"></div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Badge Notification Popup -->
+    <div class="badge-popup hidden" id="badge-popup">
+        <div class="badge-popup-icon" id="badge-popup-icon"></div>
+        <div class="badge-popup-info">
+            <span class="badge-popup-label">Badge Unlocked!</span>
+            <span class="badge-popup-name" id="badge-popup-name"></span>
+        </div>
+    </div>
+
+    <!-- Badge Gallery Modal -->
+    <div class="modal-overlay hidden" id="badge-overlay">
+        <div class="modal" id="badge-modal">
+            <div class="modal-header">
+                <h2 class="modal-title">🏆 Badges</h2>
+                <button class="btn btn-back modal-close" id="btn-badge-close" aria-label="Close">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p class="badge-gallery-count" id="badge-gallery-count"></p>
+                <div class="badge-grid" id="badge-grid"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div class="modal-overlay hidden" id="settings-overlay">
+        <div class="modal" id="settings-modal">
+            <div class="modal-header">
+                <h2 class="modal-title">Settings</h2>
+                <button class="btn btn-back modal-close" id="btn-settings-close" aria-label="Close">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                </button>
+            </div>
+
+            <div class="modal-body">
+                <!-- AI Setup -->
+                <div class="settings-section">
+                    <h3 class="settings-section-title">AI Tutor</h3>
+                    <p class="settings-desc">Connect an Anthropic API key to enable personalized AI feedback as you practice. The AI learns your spelling patterns and gives targeted tips.</p>
+                    <div class="settings-field">
+                        <label for="api-key-input" class="settings-label">API Key</label>
+                        <div class="settings-input-row">
+                            <input type="password" id="api-key-input" class="settings-input" placeholder="sk-ant-..." autocomplete="off">
+                            <button class="btn btn-primary btn-sm" id="btn-save-key">Save</button>
+                        </div>
+                        <p class="settings-hint" id="api-key-status"></p>
+                    </div>
+                </div>
+
+                <!-- Learning Profile -->
+                <div class="settings-section" id="profile-section">
+                    <h3 class="settings-section-title">Learning Profile</h3>
+                    <div class="profile-stats" id="profile-stats"></div>
+                    <button class="btn btn-primary btn-sm" id="btn-ai-analysis" style="display:none;">Get AI Analysis</button>
+                    <div class="ai-analysis hidden" id="ai-analysis"></div>
+                </div>
+
+                <!-- Custom Words -->
+                <div class="settings-section">
+                    <h3 class="settings-section-title">Custom Words</h3>
+                    <p class="settings-desc">Add your own words to practice. They'll appear as a custom category.</p>
+                    <div class="custom-word-form">
+                        <input type="text" id="custom-word-input" class="settings-input" placeholder="Type a word..." autocomplete="off">
+                        <input type="text" id="custom-hint-input" class="settings-input" placeholder="Hint (optional)" autocomplete="off">
+                        <button class="btn btn-primary btn-sm" id="btn-add-custom-word">Add</button>
+                    </div>
+                    <div class="custom-word-list" id="custom-word-list"></div>
+                </div>
+
+                <!-- Dashboard -->
+                <div class="settings-section">
+                    <h3 class="settings-section-title">Progress</h3>
+                    <button class="btn btn-primary btn-sm" id="btn-open-dashboard">📊 View Dashboard</button>
+                </div>
+
+                <!-- Reset -->
+                <div class="settings-section">
+                    <h3 class="settings-section-title">Data</h3>
+                    <p class="settings-desc">Reset your learning profile or start completely fresh.</p>
+                    <div class="settings-reset-buttons">
+                        <button class="btn btn-clear btn-sm" id="btn-reset-profile">Reset Learning Profile</button>
+                        <button class="btn btn-danger btn-sm" id="btn-reset-everything">Reset Everything — Start Fresh</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="words.js"></script>
+    <script src="passages.js"></script>
+    <script src="lessons.js"></script>
+    <script src="storage.js"></script>
+    <script src="ai.js"></script>
+    <script src="badges.js"></script>
+    <script src="sound.js"></script>
+    <script src="app.js"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js').catch(() => {});
+        }
+    </script>
+</body>
+</html>
