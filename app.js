@@ -3383,6 +3383,20 @@ $("btn-reset-profile").addEventListener("click", () => {
     }
 });
 
+// --- PIN Change ---
+$("btn-change-pin").addEventListener("click", () => {
+    const newPin = $("pin-change-input").value.trim();
+    if (!/^\d{4}$/.test(newPin)) {
+        $("pin-change-status").textContent = "PIN must be exactly 4 digits.";
+        $("pin-change-status").className = "settings-hint error";
+        return;
+    }
+    setAppPin(newPin);
+    $("pin-change-input").value = "";
+    $("pin-change-status").textContent = "PIN updated!";
+    $("pin-change-status").className = "settings-hint success";
+});
+
 $("btn-reset-everything").addEventListener("click", () => {
     if (confirm("Start completely fresh? This erases ALL your progress — scores, badges, reading history, custom words, everything. This can't be undone!")) {
         SRS.resetEverything();

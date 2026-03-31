@@ -13,7 +13,37 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 </head>
 <body>
-    <div class="app">
+    <!-- PIN Lock Screen -->
+    <div class="pin-screen" id="pin-screen">
+        <div class="pin-container">
+            <div class="pin-logo">🔒</div>
+            <h1 class="pin-title">Colton's Reading App</h1>
+            <p class="pin-subtitle">Enter PIN to continue</p>
+            <div class="pin-dots" id="pin-dots">
+                <span class="pin-dot"></span>
+                <span class="pin-dot"></span>
+                <span class="pin-dot"></span>
+                <span class="pin-dot"></span>
+            </div>
+            <p class="pin-error hidden" id="pin-error">Wrong PIN — try again</p>
+            <div class="pin-pad">
+                <button class="pin-key" data-digit="1">1</button>
+                <button class="pin-key" data-digit="2">2</button>
+                <button class="pin-key" data-digit="3">3</button>
+                <button class="pin-key" data-digit="4">4</button>
+                <button class="pin-key" data-digit="5">5</button>
+                <button class="pin-key" data-digit="6">6</button>
+                <button class="pin-key" data-digit="7">7</button>
+                <button class="pin-key" data-digit="8">8</button>
+                <button class="pin-key" data-digit="9">9</button>
+                <button class="pin-key pin-key-empty"></button>
+                <button class="pin-key" data-digit="0">0</button>
+                <button class="pin-key pin-key-delete" id="pin-delete">⌫</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="app hidden" id="app-main">
         <header class="header">
             <h1 class="logo">Colton's <span class="logo-accent">App</span></h1>
             <div class="header-right">
@@ -975,6 +1005,19 @@
                     <div class="custom-word-list" id="custom-word-list"></div>
                 </div>
 
+                <!-- PIN Settings -->
+                <div class="settings-section">
+                    <h3 class="settings-section-title">PIN Lock</h3>
+                    <p class="settings-desc">Change the 4-digit PIN that protects the app.</p>
+                    <div class="settings-field">
+                        <div class="settings-input-row">
+                            <input type="password" id="pin-change-input" class="settings-input" placeholder="New 4-digit PIN" maxlength="4" inputmode="numeric" autocomplete="off">
+                            <button class="btn btn-primary btn-sm" id="btn-change-pin">Update</button>
+                        </div>
+                        <p class="settings-hint" id="pin-change-status"></p>
+                    </div>
+                </div>
+
                 <!-- Dashboard -->
                 <div class="settings-section">
                     <h3 class="settings-section-title">Progress</h3>
@@ -1017,6 +1060,89 @@
             </div>
         </div>
     </div>
+
+    <script>
+    // ===== PIN Lock =====
+    const PIN_STORAGE_KEY = "coltons_app_pin";
+    const PIN_DEFAULT = "1234";
+    const PIN_SESSION_KEY = "coltons_app_pin_ok";
+    function getAppPin() { return localStorage.getItem(PIN_STORAGE_KEY) || PIN_DEFAULT; }
+    function setAppPin(p) { localStorage.setItem(PIN_STORAGE_KEY, p); }
+    const APP_PIN = getAppPin(); // read once at load
+    let _pinEntry = "";
+
+    function checkPinSession() {
+        // Stay unlocked for this browser session
+        return sessionStorage.getItem(PIN_SESSION_KEY) === "true";
+    }
+
+    function unlockApp() {
+        sessionStorage.setItem(PIN_SESSION_KEY, "true");
+        document.getElementById("pin-screen").classList.add("hidden");
+        document.getElementById("app-main").classList.remove("hidden");
+    }
+
+    // If already unlocked this session, skip PIN
+    if (checkPinSession()) {
+        document.getElementById("pin-screen").classList.add("hidden");
+        document.getElementById("app-main").classList.remove("hidden");
+    }
+
+    function updatePinDots() {
+        const dots = document.querySelectorAll("#pin-dots .pin-dot");
+        dots.forEach((dot, i) => {
+            dot.classList.toggle("filled", i < _pinEntry.length);
+        });
+    }
+
+    function handlePinDigit(digit) {
+        if (_pinEntry.length >= 4) return;
+        _pinEntry += digit;
+        updatePinDots();
+        document.getElementById("pin-error").classList.add("hidden");
+
+        if (_pinEntry.length === 4) {
+            if (_pinEntry === getAppPin()) {
+                // Correct — brief animation then unlock
+                document.querySelectorAll("#pin-dots .pin-dot").forEach(d => d.classList.add("correct"));
+                setTimeout(unlockApp, 350);
+            } else {
+                // Wrong — shake and reset
+                document.getElementById("pin-error").classList.remove("hidden");
+                document.querySelector(".pin-dots").classList.add("shake");
+                document.querySelectorAll("#pin-dots .pin-dot").forEach(d => d.classList.add("wrong"));
+                setTimeout(() => {
+                    _pinEntry = "";
+                    updatePinDots();
+                    document.querySelector(".pin-dots").classList.remove("shake");
+                    document.querySelectorAll("#pin-dots .pin-dot").forEach(d => {
+                        d.classList.remove("wrong");
+                        d.classList.remove("correct");
+                    });
+                }, 600);
+            }
+        }
+    }
+
+    // Pin pad click handlers
+    document.querySelectorAll(".pin-key[data-digit]").forEach(key => {
+        key.addEventListener("click", () => handlePinDigit(key.dataset.digit));
+    });
+    document.getElementById("pin-delete").addEventListener("click", () => {
+        _pinEntry = _pinEntry.slice(0, -1);
+        updatePinDots();
+    });
+
+    // Keyboard support
+    document.addEventListener("keydown", (e) => {
+        if (document.getElementById("pin-screen").classList.contains("hidden")) return;
+        if (e.key >= "0" && e.key <= "9") handlePinDigit(e.key);
+        else if (e.key === "Backspace") {
+            _pinEntry = _pinEntry.slice(0, -1);
+            updatePinDots();
+        }
+    });
+    </script>
 
     <script src="words.js"></script>
     <script src="passages.js"></script>
