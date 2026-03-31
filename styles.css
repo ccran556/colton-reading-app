@@ -1431,6 +1431,11 @@ body {
     border-color: var(--primary);
     font-weight: 600;
 }
+select.settings-input {
+    appearance: auto;
+    cursor: pointer;
+    min-width: 0;
+}
 
 .settings-input:focus {
     border-color: var(--accent);

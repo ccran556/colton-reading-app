@@ -220,11 +220,23 @@ function _stopCloudAudio() {
     }
 }
 
+// User-selected voice override (stored in localStorage)
+const BROWSER_VOICE_STORAGE = "coltons_app_browser_voice";
+function _getSavedBrowserVoice() { return localStorage.getItem(BROWSER_VOICE_STORAGE) || ""; }
+function _setSavedBrowserVoice(name) { localStorage.setItem(BROWSER_VOICE_STORAGE, name); }
+
 function _pickBestVoice() {
     const voices = window.speechSynthesis.getVoices();
     if (voices.length === 0) return null;
 
-    // Prefer American English voices (en-US) for consistent pronunciation
+    // If user picked a specific voice, use it
+    const saved = _getSavedBrowserVoice();
+    if (saved) {
+        const match = voices.find(v => v.name === saved);
+        if (match) return match;
+    }
+
+    // Prefer English voices
     const enUS = voices.filter(v => v.lang === "en-US");
     const en = enUS.length > 0 ? enUS : voices.filter(v => v.lang.startsWith("en"));
     if (en.length === 0) return null;
@@ -233,46 +245,88 @@ function _pickBestVoice() {
     function scoreVoice(v) {
         const n = v.name.toLowerCase();
         const isUS = v.lang === "en-US";
-        const bonus = isUS ? 10 : 0; // boost American voices
+        const bonus = isUS ? 10 : 0;
 
-        // Tier 1: Neural / Natural voices — most human-like
-        if (/natural/i.test(n))                        return 110 + bonus; // MS Natural (Win 11) — best
-        if (/neural/i.test(n))                         return 105 + bonus; // MS Neural
-        if (/online/i.test(n) && /microsoft/i.test(n)) return 100 + bonus; // MS Online — cloud quality
+        // Tier 0: Best-known Natural voices by exact name (Windows 11)
+        if (/jenny.*natural/i.test(n))                 return 200 + bonus;
+        if (/aria.*natural/i.test(n))                  return 195 + bonus;
+        if (/guy.*natural/i.test(n))                   return 190 + bonus;
+        if (/ana.*natural/i.test(n))                   return 188 + bonus;
+        if (/andrew.*natural/i.test(n))                return 185 + bonus;
+        if (/emma.*natural/i.test(n))                  return 183 + bonus;
+        if (/brian.*natural/i.test(n))                 return 180 + bonus;
+        if (/michelle.*natural/i.test(n))              return 178 + bonus;
 
-        // Prefer specific warm female voices by name (friendlier for a kid)
-        if (/jenny|aria|ana|sara/i.test(n) && /natural|neural/i.test(n)) return 115 + bonus; // Jenny Natural is top tier
-        if (/samantha/i.test(n))                       return 92 + bonus;  // Apple Samantha — warm
-        if (/enhanced/i.test(n))                       return 90 + bonus;  // Apple enhanced
-        if (/premium/i.test(n))                        return 90 + bonus;
+        // Tier 1: Any Natural / Neural / Online voice
+        if (/natural/i.test(n))                        return 160 + bonus;
+        if (/neural/i.test(n))                         return 150 + bonus;
+        if (/online/i.test(n) && /microsoft/i.test(n)) return 140 + bonus;
 
-        // Tier 2: Good quality voices
-        if (/alex/i.test(n))                           return 80 + bonus;
+        // Tier 2: Apple high-quality voices
+        if (/samantha.*enhanced|premium/i.test(n))     return 130 + bonus;
+        if (/samantha/i.test(n))                       return 120 + bonus;
+        if (/enhanced|premium/i.test(n))               return 115 + bonus;
+        if (/alex/i.test(n))                           return 110 + bonus;
+
+        // Tier 3: Google voices (Chrome)
+        if (/google us english/i.test(n))              return 100;
+        if (/google uk english/i.test(n))              return 90;
+        if (/google/i.test(n))                         return 85 + bonus;
+
+        // Tier 4: Other named voices
         if (/karen|daniel|moira|tessa|fiona/i.test(n)) return 70;
-        if (/google us english/i.test(n))              return 78;
-        if (/google uk english/i.test(n))              return 65;
-        if (/google/i.test(n))                         return 60 + bonus;
 
-        // Tier 3: Desktop fallbacks
-        if (/zira|david/i.test(n))                     return 45 + bonus;  // MS Desktop — robotic
-        if (/microsoft/i.test(n))                      return 40 + bonus;
-        if (/(compact|espeak)/i.test(n))               return 5;           // very robotic
+        // Tier 5: MS Desktop (robotic but usable)
+        if (/zira/i.test(n))                           return 50 + bonus;
+        if (/david/i.test(n))                          return 48 + bonus;
+        if (/microsoft/i.test(n))                      return 45 + bonus;
+
+        // Avoid these
+        if (/(compact|espeak)/i.test(n))               return 5;
         return 30 + bonus;
     }
 
     en.sort((a, b) => scoreVoice(b) - scoreVoice(a));
+    console.log("[TTS] Selected voice:", en[0]?.name, "| Score:", scoreVoice(en[0]));
     return en[0];
+}
+
+// Get all English voices for the settings picker
+function _getEnglishVoices() {
+    return window.speechSynthesis.getVoices()
+        .filter(v => v.lang.startsWith("en"))
+        .sort((a, b) => a.name.localeCompare(b.name));
+}
+
+// Pre-process text for more natural speech
+function _preprocessText(text) {
+    let t = text;
+    // Replace em-dashes with commas (creates a pause)
+    t = t.replace(/\s*[—–]\s*/g, ", ");
+    // Add micro-pause after "So" / "Now" / "OK" / "Alright" at start of sentences
+    t = t.replace(/^(So|Now|OK|Okay|Alright|Well|Hey|Right)\b/i, "$1,");
+    // Expand common abbreviations for clearer pronunciation
+    t = t.replace(/\be\.g\./g, "for example");
+    t = t.replace(/\bi\.e\./g, "that is");
+    t = t.replace(/\betc\./g, "et cetera");
+    // Add slight pause before "because", "but", "and then" for natural rhythm
+    t = t.replace(/\s+(because|but|however|although)\s+/gi, ". $1 ");
+    return t;
 }
 
 // Low-level: speak a single utterance, returns a Promise
 function _utter(text, { rate = 0.88, pitch = 0.97, volume = 1, pause = 0 } = {}) {
     return new Promise(resolve => {
-        const u = new SpeechSynthesisUtterance(text);
+        const processed = _preprocessText(text);
+        const u = new SpeechSynthesisUtterance(processed);
         u.rate = rate;
         u.pitch = pitch;
         u.volume = volume;
         const voice = _cachedVoice || _pickBestVoice();
-        if (voice) u.voice = voice;
+        if (voice) {
+            u.voice = voice;
+            _cachedVoice = voice;
+        }
         u.onend = () => setTimeout(resolve, pause);
         u.onerror = () => setTimeout(resolve, pause);
         window.speechSynthesis.speak(u);
@@ -443,32 +497,32 @@ function _browserSpeakNatural(text) {
             const isExclamation = chunk.text.endsWith("!");
             const progress = chunks.length > 1 ? i / (chunks.length - 1) : 0;
 
-            // --- Rate: natural variation like a real speaker ---
-            let baseRate = 0.92;
-            if (isFirst) baseRate = 0.86;                           // Start slow & warm
-            else if (isLast) baseRate = 0.84;                       // Slow down for emphasis at end
-            else if (chunk.isClause) baseRate = 0.94;               // Clauses flow a bit faster
-            else baseRate = 0.88 + (Math.random() * 0.08);         // Vary between 0.88-0.96
-            // Add tiny per-chunk jitter so it never sounds robotic
-            const rate = baseRate + (Math.random() - 0.5) * 0.04;
+            // --- Rate: slower, warmer, teacher-paced ---
+            let baseRate = 0.85;
+            if (isFirst) baseRate = 0.78;                           // Start slow & warm
+            else if (isLast) baseRate = 0.76;                       // Slow down to land the ending
+            else if (chunk.isClause) baseRate = 0.87;               // Clauses flow a touch faster
+            else baseRate = 0.80 + (Math.random() * 0.08);         // Vary between 0.80-0.88
+            // Tiny per-chunk jitter
+            const rate = baseRate + (Math.random() - 0.5) * 0.03;
 
-            // --- Pitch: contour like real speech ---
+            // --- Pitch: gentle contour, not too dramatic ---
             let pitch;
-            if (isQuestion) pitch = 1.06;                           // Rise on questions
-            else if (isExclamation) pitch = 1.03;                   // Energetic on excitement
-            else if (isFirst) pitch = 1.01;                         // Warm, inviting opening
-            else if (isLast) pitch = 0.91;                          // Drop to signal finality
+            if (isQuestion) pitch = 1.04;                           // Slight rise on questions
+            else if (isExclamation) pitch = 1.02;                   // Warm energy
+            else if (isFirst) pitch = 1.0;                          // Neutral, inviting start
+            else if (isLast) pitch = 0.93;                          // Gentle drop to signal ending
             else {
-                // Natural arc: slight rise in middle, gentle fall toward end
+                // Subtle arc — real teachers don't vary pitch wildly
                 const arc = Math.sin(progress * Math.PI);
-                pitch = 0.95 + arc * 0.06 + (Math.random() - 0.5) * 0.03;
+                pitch = 0.96 + arc * 0.04 + (Math.random() - 0.5) * 0.02;
             }
 
-            // --- Pause: breathing rhythm ---
+            // --- Pause: generous breathing room (slower = more human) ---
             let pause = 0;
-            if (chunk.isClause) pause = 200 + Math.random() * 100;            // Short breath at comma
-            else if (chunk.isEnd && !isLast) pause = 400 + Math.random() * 200; // Longer breath between sentences
-            if (isQuestion && !isLast) pause += 150;                           // Extra beat after questions
+            if (chunk.isClause) pause = 280 + Math.random() * 120;            // Breath at comma
+            else if (chunk.isEnd && !isLast) pause = 500 + Math.random() * 250; // Real pause between sentences
+            if (isQuestion && !isLast) pause += 200;                           // Let question land
 
             await _utter(chunk.text, { rate, pitch, pause });
         }
@@ -3312,11 +3366,13 @@ $("btn-settings").addEventListener("click", () => {
     $("openai-key-status").textContent = oKey ? "Key saved — human voice active!" : "";
     $("openai-key-status").className = oKey ? "settings-hint success" : "settings-hint";
     $("voice-select-field").style.display = oKey ? "block" : "none";
-    // Highlight active voice
+    // Highlight active cloud voice
     const activeVoice = _getOpenAIVoice();
     document.querySelectorAll(".voice-pick").forEach(b => {
         b.classList.toggle("active", b.dataset.voice === activeVoice);
     });
+    // Populate browser voice dropdown
+    _populateBrowserVoiceSelect();
     renderProfileStats();
     renderCustomWordList();
     resetParentGate();
@@ -3331,6 +3387,53 @@ $("settings-overlay").addEventListener("click", (e) => {
         $("settings-overlay").classList.add("hidden");
     }
 });
+
+// --- Browser Voice Picker ---
+function _populateBrowserVoiceSelect() {
+    const sel = $("browser-voice-select");
+    const voices = _getEnglishVoices();
+    const saved = _getSavedBrowserVoice();
+    // Keep the "Auto" option, clear the rest
+    sel.innerHTML = '<option value="">Auto (best available)</option>';
+    voices.forEach(v => {
+        const opt = document.createElement("option");
+        opt.value = v.name;
+        const quality = /natural/i.test(v.name) ? " ★★★" : /neural|enhanced|premium/i.test(v.name) ? " ★★" : /google/i.test(v.name) ? " ★" : "";
+        opt.textContent = `${v.name}${quality}`;
+        if (v.name === saved) opt.selected = true;
+        sel.appendChild(opt);
+    });
+    // Show current auto-selected voice info
+    const current = _cachedVoice || _pickBestVoice();
+    if (!saved && current) {
+        $("browser-voice-info").textContent = `Currently using: ${current.name}`;
+    } else {
+        $("browser-voice-info").textContent = "";
+    }
+}
+
+$("browser-voice-select").addEventListener("change", (e) => {
+    const name = e.target.value;
+    _setSavedBrowserVoice(name);
+    _cachedVoice = null; // Force re-pick
+    _cachedVoice = _pickBestVoice();
+    $("browser-voice-info").textContent = _cachedVoice ? `Now using: ${_cachedVoice.name}` : "";
+});
+
+$("btn-test-browser-voice").addEventListener("click", () => {
+    _cachedVoice = null;
+    _cachedVoice = _pickBestVoice();
+    // Use browser TTS directly (bypass cloud) to test the device voice
+    _browserSpeak("Hi Colton! This is how I sound. Let's practice some spelling together!", 0.82);
+});
+
+// Reload voices when they become available (Chrome loads async)
+if ("speechSynthesis" in window) {
+    window.speechSynthesis.onvoiceschanged = () => {
+        _cachedVoice = null;
+        _voicesLoaded = true;
+    };
+}
 
 // --- OpenAI Voice Key ---
 $("btn-save-openai-key").addEventListener("click", () => {

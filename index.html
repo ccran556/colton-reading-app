@@ -952,9 +952,23 @@
                 <!-- Voice Settings -->
                 <div class="settings-section">
                     <h3 class="settings-section-title">Voice</h3>
-                    <p class="settings-desc">Add an OpenAI API key for a natural, human-sounding voice. Without it, the app uses your browser's built-in voice.</p>
+                    <p class="settings-desc">Pick the best voice on your device, or add an OpenAI key for premium human-sounding voice.</p>
+
+                    <!-- Browser Voice Picker -->
                     <div class="settings-field">
-                        <label for="openai-key-input" class="settings-label">OpenAI API Key</label>
+                        <label class="settings-label">Device Voice</label>
+                        <div class="settings-input-row">
+                            <select id="browser-voice-select" class="settings-input">
+                                <option value="">Auto (best available)</option>
+                            </select>
+                            <button class="btn btn-sm btn-hear" id="btn-test-browser-voice">🔊 Test</button>
+                        </div>
+                        <p class="settings-hint" id="browser-voice-info"></p>
+                    </div>
+
+                    <!-- OpenAI Cloud Voice -->
+                    <div class="settings-field" style="margin-top: 0.8rem;">
+                        <label for="openai-key-input" class="settings-label">OpenAI API Key (optional — premium voice)</label>
                         <div class="settings-input-row">
                             <input type="password" id="openai-key-input" class="settings-input" placeholder="sk-..." autocomplete="off">
                             <button class="btn btn-primary btn-sm" id="btn-save-openai-key">Save</button>
@@ -962,14 +976,14 @@
                         <p class="settings-hint" id="openai-key-status"></p>
                     </div>
                     <div class="settings-field" id="voice-select-field" style="display:none;">
-                        <label class="settings-label">Voice Style</label>
+                        <label class="settings-label">Cloud Voice Style</label>
                         <div class="voice-option-row">
                             <button class="btn btn-sm voice-pick" data-voice="nova">Nova (warm)</button>
                             <button class="btn btn-sm voice-pick" data-voice="shimmer">Shimmer (gentle)</button>
                             <button class="btn btn-sm voice-pick" data-voice="alloy">Alloy (neutral)</button>
                             <button class="btn btn-sm voice-pick" data-voice="fable">Fable (expressive)</button>
                         </div>
-                        <button class="btn btn-sm btn-hear" id="btn-test-voice" style="margin-top:0.5rem;">🔊 Test Voice</button>
+                        <button class="btn btn-sm btn-hear" id="btn-test-voice" style="margin-top:0.5rem;">🔊 Test Cloud Voice</button>
                     </div>
                 </div>
 
