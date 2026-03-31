@@ -1285,6 +1285,32 @@ body {
     transition: border-color var(--transition);
 }
 
+/* Voice picker */
+.voice-option-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+}
+.voice-pick {
+    background: var(--surface);
+    border: 2px solid rgba(0, 0, 0, 0.1);
+    color: var(--text);
+    font-size: 0.8rem;
+    padding: 0.45rem 0.8rem;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: all var(--transition);
+}
+.voice-pick:hover {
+    border-color: var(--primary);
+}
+.voice-pick.active {
+    background: var(--primary);
+    color: #fff;
+    border-color: var(--primary);
+    font-weight: 600;
+}
+
 .settings-input:focus {
     border-color: var(--accent);
 }

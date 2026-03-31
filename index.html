@@ -917,6 +917,30 @@
             </div>
 
             <div class="modal-body">
+                <!-- Voice Settings -->
+                <div class="settings-section">
+                    <h3 class="settings-section-title">Voice</h3>
+                    <p class="settings-desc">Add an OpenAI API key for a natural, human-sounding voice. Without it, the app uses your browser's built-in voice.</p>
+                    <div class="settings-field">
+                        <label for="openai-key-input" class="settings-label">OpenAI API Key</label>
+                        <div class="settings-input-row">
+                            <input type="password" id="openai-key-input" class="settings-input" placeholder="sk-..." autocomplete="off">
+                            <button class="btn btn-primary btn-sm" id="btn-save-openai-key">Save</button>
+                        </div>
+                        <p class="settings-hint" id="openai-key-status"></p>
+                    </div>
+                    <div class="settings-field" id="voice-select-field" style="display:none;">
+                        <label class="settings-label">Voice Style</label>
+                        <div class="voice-option-row">
+                            <button class="btn btn-sm voice-pick" data-voice="nova">Nova (warm)</button>
+                            <button class="btn btn-sm voice-pick" data-voice="shimmer">Shimmer (gentle)</button>
+                            <button class="btn btn-sm voice-pick" data-voice="alloy">Alloy (neutral)</button>
+                            <button class="btn btn-sm voice-pick" data-voice="fable">Fable (expressive)</button>
+                        </div>
+                        <button class="btn btn-sm btn-hear" id="btn-test-voice" style="margin-top:0.5rem;">🔊 Test Voice</button>
+                    </div>
+                </div>
+
                 <!-- AI Setup -->
                 <div class="settings-section">
                     <h3 class="settings-section-title">AI Tutor</h3>

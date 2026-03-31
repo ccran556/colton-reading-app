@@ -119,11 +119,97 @@ function savePersistentStats() {
 }
 
 // ===== Speech Engine =====
-// Natural-sounding TTS: sentence-level chunking, warm pitch, breathing pauses.
+// Cloud TTS (OpenAI) when available, falls back to browser TTS.
 
 let _cachedVoice = null;
 let _voicesLoaded = false;
 let _speechQueue = null; // track current speech chain so we can cancel
+
+// --- Cloud TTS (OpenAI) ---
+const OPENAI_TTS_URL = "https://api.openai.com/v1/audio/speech";
+const OPENAI_KEY_STORAGE = "coltons_app_openai_key";
+const OPENAI_VOICE_STORAGE = "coltons_app_openai_voice";
+const _ttsAudioCache = new Map(); // text → Blob URL cache
+let _currentAudio = null; // currently playing Audio element
+
+function _getOpenAIKey() { return localStorage.getItem(OPENAI_KEY_STORAGE) || ""; }
+function _setOpenAIKey(k) { localStorage.setItem(OPENAI_KEY_STORAGE, k.trim()); }
+function _hasOpenAIKey() { return _getOpenAIKey().length > 0; }
+function _getOpenAIVoice() { return localStorage.getItem(OPENAI_VOICE_STORAGE) || "nova"; }
+function _setOpenAIVoice(v) { localStorage.setItem(OPENAI_VOICE_STORAGE, v); }
+
+// Fetch audio from OpenAI TTS, returns a Blob URL (cached)
+async function _cloudTTS(text, { speed = 1.0 } = {}) {
+    if (!_hasOpenAIKey() || !text) return null;
+
+    // Check cache
+    const cacheKey = text.substring(0, 200) + "|" + _getOpenAIVoice() + "|" + speed;
+    if (_ttsAudioCache.has(cacheKey)) return _ttsAudioCache.get(cacheKey);
+
+    try {
+        const resp = await fetch(OPENAI_TTS_URL, {
+            method: "POST",
+            headers: {
+                "Authorization": `Bearer ${_getOpenAIKey()}`,
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                model: "tts-1",
+                input: text,
+                voice: _getOpenAIVoice(),
+                speed: speed,
+                response_format: "mp3",
+            }),
+        });
+        if (!resp.ok) {
+            console.warn("Cloud TTS error:", resp.status);
+            return null;
+        }
+        const blob = await resp.blob();
+        const url = URL.createObjectURL(blob);
+        // Cache (limit cache size to 100 entries)
+        if (_ttsAudioCache.size > 100) {
+            const firstKey = _ttsAudioCache.keys().next().value;
+            URL.revokeObjectURL(_ttsAudioCache.get(firstKey));
+            _ttsAudioCache.delete(firstKey);
+        }
+        _ttsAudioCache.set(cacheKey, url);
+        return url;
+    } catch (err) {
+        console.warn("Cloud TTS failed:", err);
+        return null;
+    }
+}
+
+// Play a cloud TTS audio URL, returns a Promise that resolves when done
+function _playCloudAudio(url, { pause = 0 } = {}) {
+    return new Promise(resolve => {
+        if (_currentAudio) {
+            _currentAudio.pause();
+            _currentAudio = null;
+        }
+        const audio = new Audio(url);
+        _currentAudio = audio;
+        audio.onended = () => {
+            _currentAudio = null;
+            setTimeout(resolve, pause);
+        };
+        audio.onerror = () => {
+            _currentAudio = null;
+            setTimeout(resolve, pause);
+        };
+        audio.play().catch(() => setTimeout(resolve, pause));
+    });
+}
+
+// Stop any playing cloud audio
+function _stopCloudAudio() {
+    if (_currentAudio) {
+        _currentAudio.pause();
+        _currentAudio.currentTime = 0;
+        _currentAudio = null;
+    }
+}
 
 function _pickBestVoice() {
     const voices = window.speechSynthesis.getVoices();
@@ -218,30 +304,85 @@ function _utterWithBoundary(text, { rate = 0.85, pitch = 0.97, volume = 1, pause
 
 /**
  * speak() — short text (word names, "Correct!", etc.)
- * Warm, friendly pitch with slight humanizing variation.
+ * Uses cloud TTS if available, otherwise warm browser TTS.
  */
 function speak(text, rate = 0.88) {
-    if (!("speechSynthesis" in window)) return;
-    window.speechSynthesis.cancel();
     _speechQueue = null;
+    _stopCloudAudio();
+    if ("speechSynthesis" in window) window.speechSynthesis.cancel();
 
-    // Chrome+Windows bug: speak() right after cancel() is silently swallowed.
-    // A small delay fixes it.
+    if (_hasOpenAIKey()) {
+        // Cloud TTS for short text
+        _cloudTTS(text, { speed: 1.0 }).then(url => {
+            if (url) _playCloudAudio(url);
+            else _browserSpeak(text, rate); // fallback
+        });
+    } else {
+        _browserSpeak(text, rate);
+    }
+}
+
+// Browser TTS fallback for speak()
+function _browserSpeak(text, rate = 0.88) {
+    if (!("speechSynthesis" in window)) return;
     setTimeout(() => {
         if (window.speechSynthesis.paused) window.speechSynthesis.resume();
-        // Add small random variation so repeated phrases don't sound identical
-        const pitchVar = 0.98 + (Math.random() - 0.5) * 0.04;  // 0.96–1.00
-        const rateVar = rate + (Math.random() - 0.5) * 0.04;    // ±0.02
+        const pitchVar = 0.98 + (Math.random() - 0.5) * 0.04;
+        const rateVar = rate + (Math.random() - 0.5) * 0.04;
         _utter(text, { rate: rateVar, pitch: pitchVar });
     }, 50);
 }
 
 /**
  * speakNatural() — longer text (AI feedback, lesson content, session insights).
- * Splits into clauses/sentences and speaks each with breathing pauses,
- * natural pitch contour, and rate variation to sound like a real teacher.
+ * Uses cloud TTS for truly human sound, falls back to browser TTS with
+ * clause-level chunking, pitch contour, and breathing pauses.
  */
 function speakNatural(text) {
+    if (!text) return;
+    _stopCloudAudio();
+    if ("speechSynthesis" in window) window.speechSynthesis.cancel();
+    if ("speechSynthesis" in window && window.speechSynthesis.paused) window.speechSynthesis.resume();
+
+    // If cloud TTS available, use it — much more human
+    if (_hasOpenAIKey()) {
+        const token = {};
+        _speechQueue = token;
+        // For longer text, split into 2-3 sentence chunks for faster first response
+        const sentences = text.replace(/([.!?])\s+/g, "$1|||").split("|||").map(s => s.trim()).filter(s => s);
+        const chunks = [];
+        let current = [];
+        sentences.forEach(s => {
+            current.push(s);
+            if (current.length >= 2 || current.join(" ").length > 200) {
+                chunks.push(current.join(" "));
+                current = [];
+            }
+        });
+        if (current.length > 0) chunks.push(current.join(" "));
+
+        (async () => {
+            for (let i = 0; i < chunks.length; i++) {
+                if (_speechQueue !== token) return;
+                const url = await _cloudTTS(chunks[i], { speed: 1.0 });
+                if (_speechQueue !== token) return;
+                if (url) {
+                    await _playCloudAudio(url, { pause: i < chunks.length - 1 ? 250 : 0 });
+                } else {
+                    // Fallback to browser for this chunk
+                    _browserSpeakNatural(chunks[i]);
+                    return; // browser TTS handles the rest
+                }
+            }
+        })();
+        return;
+    }
+
+    // Browser TTS fallback
+    _browserSpeakNatural(text);
+}
+
+function _browserSpeakNatural(text) {
     if (!("speechSynthesis" in window) || !text) return;
     window.speechSynthesis.cancel();
     if (window.speechSynthesis.paused) window.speechSynthesis.resume();
@@ -3156,6 +3297,17 @@ $("btn-settings").addEventListener("click", () => {
     $("api-key-input").value = key;
     $("api-key-status").textContent = key ? "Key saved." : "";
     $("api-key-status").className = key ? "settings-hint success" : "settings-hint";
+    // Pre-fill OpenAI key
+    const oKey = _getOpenAIKey();
+    $("openai-key-input").value = oKey;
+    $("openai-key-status").textContent = oKey ? "Key saved — human voice active!" : "";
+    $("openai-key-status").className = oKey ? "settings-hint success" : "settings-hint";
+    $("voice-select-field").style.display = oKey ? "block" : "none";
+    // Highlight active voice
+    const activeVoice = _getOpenAIVoice();
+    document.querySelectorAll(".voice-pick").forEach(b => {
+        b.classList.toggle("active", b.dataset.voice === activeVoice);
+    });
     renderProfileStats();
     renderCustomWordList();
     resetParentGate();
@@ -3171,6 +3323,46 @@ $("settings-overlay").addEventListener("click", (e) => {
     }
 });
 
+// --- OpenAI Voice Key ---
+$("btn-save-openai-key").addEventListener("click", () => {
+    const key = $("openai-key-input").value.trim();
+    if (!key) {
+        $("openai-key-status").textContent = "Please enter an OpenAI API key.";
+        $("openai-key-status").className = "settings-hint error";
+        $("voice-select-field").style.display = "none";
+        return;
+    }
+    _setOpenAIKey(key);
+    $("openai-key-status").textContent = "Key saved — human voice active!";
+    $("openai-key-status").className = "settings-hint success";
+    $("voice-select-field").style.display = "block";
+    // Highlight active voice
+    const activeVoice = _getOpenAIVoice();
+    document.querySelectorAll(".voice-pick").forEach(b => {
+        b.classList.toggle("active", b.dataset.voice === activeVoice);
+    });
+});
+
+// --- Voice Selection ---
+document.querySelectorAll(".voice-pick").forEach(btn => {
+    btn.addEventListener("click", () => {
+        _setOpenAIVoice(btn.dataset.voice);
+        document.querySelectorAll(".voice-pick").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        // Clear cache so new voice is used
+        _ttsAudioCache.forEach(url => URL.revokeObjectURL(url));
+        _ttsAudioCache.clear();
+        // Preview the voice
+        speak("Hi Colton! I'm your new reading coach. Let's learn together!");
+    });
+});
+
+// --- Test Voice ---
+$("btn-test-voice").addEventListener("click", () => {
+    speakNatural("Hey Colton! This is what I sound like when I read your lessons. Pretty cool, right? Let's get started!");
+});
+
+// --- Anthropic AI Key ---
 $("btn-save-key").addEventListener("click", () => {
     const key = $("api-key-input").value.trim();
     if (!key) {
@@ -3928,6 +4120,7 @@ function hasSpeechRecognition() {
 
 function startRecognition() {
     // Cancel any ongoing TTS so mic can hear clearly
+    _stopCloudAudio();
     if ("speechSynthesis" in window) window.speechSynthesis.cancel();
 
     if (!hasSpeechRecognition()) {
@@ -4566,6 +4759,7 @@ function practiceStruggledWords() {
 $("btn-read-back").addEventListener("click", () => {
     stopRecognition();
     cancelJustListen();
+    _stopCloudAudio();
     if ("speechSynthesis" in window) window.speechSynthesis.cancel();
     showScreen("start");
     renderCategories();
@@ -4776,6 +4970,7 @@ function cancelJustListen() {
         state.justListenCancel();
         state.justListenCancel = null;
     }
+    _stopCloudAudio();
     if ("speechSynthesis" in window) window.speechSynthesis.cancel();
 }
 
