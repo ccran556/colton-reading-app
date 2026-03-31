@@ -64,6 +64,8 @@ const state = {
     dictation: null,    // { level, sentences, index, sentencesCorrect, totalWords, wordsCorrect, missedWords, results }
     // Comprehension
     comprehension: null, // { passage, questions, index, correct, total, results }
+    // Interactive teach slides
+    interactiveAnswered: false,
 };
 
 // ===== DOM Elements =====
@@ -1439,6 +1441,8 @@ function startLesson(lesson) {
             `;
             examplesEl.appendChild(div);
         });
+        // Auto-read the rule aloud for basic teach too
+        setTimeout(() => speakNatural(lesson.rule), 400);
     }
 }
 
@@ -1448,10 +1452,17 @@ function renderTeachSlide() {
     const lesson = state.currentLesson;
     const slide = lesson.teachSlides[state.teachSlideIndex];
     const total = lesson.teachSlides.length;
+    const slideType = slide.type || "teach";
 
     $("teach-slide-counter").textContent = `${state.teachSlideIndex + 1} / ${total}`;
     $("teach-slide-title").textContent = slide.title;
-    $("teach-slide-content").textContent = slide.content;
+    $("teach-slide-content").textContent = slide.content || "";
+
+    // Clear interactive area
+    const interEl = $("teach-slide-interactive");
+    interEl.innerHTML = "";
+    interEl.classList.add("hidden");
+    state.interactiveAnswered = false;
 
     // Render diagram
     const diagramEl = $("teach-slide-diagram");
@@ -1463,13 +1474,222 @@ function renderTeachSlide() {
         diagramEl.classList.add("hidden");
     }
 
+    // Render interactive content based on slide type
+    if (slideType === "listen-and-choose") {
+        renderListenAndChoose(slide, interEl);
+    } else if (slideType === "tap-the-pattern") {
+        renderTapThePattern(slide, interEl);
+    } else if (slideType === "fill-the-gap") {
+        renderFillTheGap(slide, interEl);
+    } else if (slideType === "sort-it") {
+        renderSortIt(slide, interEl);
+    }
+
     // Nav buttons
     const isLast = state.teachSlideIndex === total - 1;
     $("btn-teach-next").textContent = isLast ? "Start Practice →" : "Next →";
     $("btn-teach-prev").classList.toggle("hidden", state.teachSlideIndex === 0);
 
+    // Disable next until interactive is answered
+    if (["listen-and-choose", "tap-the-pattern", "fill-the-gap", "sort-it"].includes(slideType)) {
+        $("btn-teach-next").disabled = true;
+        $("btn-teach-next").classList.add("disabled");
+    } else {
+        $("btn-teach-next").disabled = false;
+        $("btn-teach-next").classList.remove("disabled");
+    }
+
+    // Render progress dots
+    renderTeachProgressDots(total, state.teachSlideIndex, lesson.teachSlides);
+
     // Auto-read aloud
-    setTimeout(() => speakNatural(slide.content), 400);
+    if (slide.content) {
+        window._teachSpeechTimeout = setTimeout(() => speakNatural(slide.content), 400);
+    }
+    // For listen-and-choose, also speak the target word after content
+    if (slideType === "listen-and-choose" && slide.audioWord) {
+        setTimeout(() => speak(slide.audioWord, 0.7), slide.content ? 3000 : 400);
+    }
+}
+
+function enableTeachNext() {
+    state.interactiveAnswered = true;
+    $("btn-teach-next").disabled = false;
+    $("btn-teach-next").classList.remove("disabled");
+}
+
+function renderTeachProgressDots(total, current, slides) {
+    const dotsEl = $("teach-slide-progress");
+    if (!dotsEl) return;
+    dotsEl.innerHTML = "";
+    for (let i = 0; i < total; i++) {
+        const dot = document.createElement("span");
+        const sType = (slides[i].type || "teach");
+        const isInteractive = ["listen-and-choose", "tap-the-pattern", "fill-the-gap", "sort-it"].includes(sType);
+        dot.className = `teach-dot${i === current ? " active" : ""}${i < current ? " completed" : ""}${isInteractive ? " interactive" : ""}`;
+        dotsEl.appendChild(dot);
+    }
+}
+
+// ===== Interactive Slide Renderers =====
+
+function renderListenAndChoose(slide, container) {
+    container.classList.remove("hidden");
+    let html = `<div class="teach-listen-choose">`;
+    html += `<button class="btn btn-hear teach-listen-btn" id="btn-teach-listen-word">&#128264; Hear the word</button>`;
+    html += `<div class="teach-choices">`;
+    slide.choices.forEach((c, i) => {
+        html += `<button class="teach-choice-btn" data-idx="${i}">${c}</button>`;
+    });
+    html += `</div></div>`;
+    container.innerHTML = html;
+
+    // Wire events
+    $("btn-teach-listen-word").addEventListener("click", () => speak(slide.audioWord, 0.7));
+    container.querySelectorAll(".teach-choice-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+            if (state.interactiveAnswered) return;
+            const idx = parseInt(btn.dataset.idx);
+            const correct = idx === slide.correctChoice;
+            container.querySelectorAll(".teach-choice-btn").forEach((b, j) => {
+                b.classList.add("disabled");
+                if (j === slide.correctChoice) b.classList.add("correct");
+                if (j === idx && !correct) b.classList.add("incorrect");
+            });
+            if (correct) speak("That's right!");
+            else speak(`The correct answer is ${slide.choices[slide.correctChoice]}`);
+            enableTeachNext();
+        });
+    });
+}
+
+function renderTapThePattern(slide, container) {
+    container.classList.remove("hidden");
+    const word = slide.tapWord;
+    const target = slide.tapTarget;
+    const targetIdx = word.toLowerCase().indexOf(target.toLowerCase());
+
+    let html = `<div class="teach-tap-word">`;
+    // Split word into segments: before target, the target, after target
+    if (targetIdx >= 0) {
+        const before = word.substring(0, targetIdx);
+        const match = word.substring(targetIdx, targetIdx + target.length);
+        const after = word.substring(targetIdx + target.length);
+        if (before) html += `<span class="teach-tap-segment" data-part="other">${before}</span>`;
+        html += `<span class="teach-tap-segment target" data-part="target">${match}</span>`;
+        if (after) html += `<span class="teach-tap-segment" data-part="other">${after}</span>`;
+    } else {
+        html += `<span class="teach-tap-segment">${word}</span>`;
+    }
+    html += `</div>`;
+    html += `<p class="teach-tap-hint">Tap the part that matches the rule!</p>`;
+    container.innerHTML = html;
+
+    container.querySelectorAll(".teach-tap-segment").forEach(seg => {
+        seg.addEventListener("click", () => {
+            if (state.interactiveAnswered) return;
+            if (seg.dataset.part === "target") {
+                seg.classList.add("highlighted");
+                const explain = slide.tapExplanation || "Correct!";
+                container.querySelector(".teach-tap-hint").textContent = explain;
+                speak("That's the one!");
+                enableTeachNext();
+            } else {
+                seg.classList.add("wrong-tap");
+                setTimeout(() => seg.classList.remove("wrong-tap"), 600);
+                speak("Try again, look for the pattern.");
+            }
+        });
+    });
+}
+
+function renderFillTheGap(slide, container) {
+    container.classList.remove("hidden");
+    let html = `<div class="teach-fill-gap">`;
+    html += `<div class="teach-gap-word">${slide.gapWord.replace("_", `<span class="teach-gap-blank">___</span>`)}</div>`;
+    html += `<div class="teach-gap-options">`;
+    slide.gapOptions.forEach((opt, i) => {
+        html += `<button class="teach-gap-btn" data-idx="${i}">${opt}</button>`;
+    });
+    html += `</div></div>`;
+    container.innerHTML = html;
+
+    container.querySelectorAll(".teach-gap-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+            if (state.interactiveAnswered) return;
+            const correct = btn.textContent === slide.gapAnswer;
+            container.querySelectorAll(".teach-gap-btn").forEach(b => {
+                b.classList.add("disabled");
+                if (b.textContent === slide.gapAnswer) b.classList.add("correct");
+            });
+            if (!correct) btn.classList.add("incorrect");
+            // Show the completed word
+            const blankEl = container.querySelector(".teach-gap-blank");
+            if (blankEl) {
+                blankEl.textContent = slide.gapAnswer;
+                blankEl.classList.add("filled");
+            }
+            if (correct) speak("Perfect!");
+            else speak(`It's ${slide.gapAnswer}`);
+            enableTeachNext();
+        });
+    });
+}
+
+function renderSortIt(slide, container) {
+    container.classList.remove("hidden");
+    const cats = slide.sortCategories;
+    let html = `<div class="teach-sort-container">`;
+    html += `<div class="teach-sort-columns">`;
+    cats.forEach((cat, i) => {
+        html += `<div class="teach-sort-column" data-cat="${i}"><div class="teach-sort-header">${cat}</div><div class="teach-sort-items" id="sort-col-${i}"></div></div>`;
+    });
+    html += `</div>`;
+    html += `<div class="teach-sort-pool" id="sort-pool">`;
+    // Shuffle items
+    const items = [...slide.sortItems].sort(() => Math.random() - 0.5);
+    items.forEach((item, i) => {
+        html += `<button class="teach-sort-word" data-word="${item.word}" data-cat="${item.category}">${item.word}</button>`;
+    });
+    html += `</div></div>`;
+    container.innerHTML = html;
+
+    let sortedCount = 0;
+    const totalItems = slide.sortItems.length;
+
+    container.querySelectorAll(".teach-sort-word").forEach(wordBtn => {
+        let selectedCol = null;
+        // Tap word, then tap column
+        wordBtn.addEventListener("click", () => {
+            if (wordBtn.classList.contains("sorted")) return;
+            // Highlight this word
+            container.querySelectorAll(".teach-sort-word").forEach(w => w.classList.remove("selected"));
+            wordBtn.classList.add("selected");
+        });
+    });
+
+    container.querySelectorAll(".teach-sort-column").forEach(col => {
+        col.addEventListener("click", () => {
+            const selected = container.querySelector(".teach-sort-word.selected");
+            if (!selected) return;
+            const correctCat = parseInt(selected.dataset.cat);
+            const chosenCat = parseInt(col.dataset.cat);
+            if (correctCat === chosenCat) {
+                selected.classList.remove("selected");
+                selected.classList.add("sorted", "correct");
+                col.querySelector(".teach-sort-items").appendChild(selected);
+                sortedCount++;
+                if (sortedCount >= totalItems) {
+                    speak("Great sorting!");
+                    enableTeachNext();
+                }
+            } else {
+                selected.classList.add("wrong-sort");
+                setTimeout(() => selected.classList.remove("wrong-sort"), 600);
+                speak("Try the other column.");
+            }
+        });
+    });
 }
 
 function renderDiagramHTML(diagram) {
@@ -1509,7 +1729,84 @@ function renderDiagramHTML(diagram) {
             </div>
         `;
     }
+    if (diagram.type === "highlight-word") {
+        return `<div class="highlight-word-diagram">${diagram.words.map(w => {
+            const idx = w.word.toLowerCase().indexOf(w.highlight.toLowerCase());
+            if (idx < 0) return `<div class="hw-item"><span class="hw-word">${w.word}</span><span class="hw-note">${w.note}</span></div>`;
+            const before = w.word.substring(0, idx);
+            const match = w.word.substring(idx, idx + w.highlight.length);
+            const after = w.word.substring(idx + w.highlight.length);
+            return `<div class="hw-item"><span class="hw-word">${before}<mark class="hw-mark" style="--hw-color:${w.color}">${match}</mark>${after}</span><span class="hw-note">${w.note}</span></div>`;
+        }).join("")}</div>`;
+    }
+    if (diagram.type === "prefix-breakdown") {
+        return `<div class="prefix-breakdown-diagram">
+            <span class="pbd-prefix">${diagram.prefix}-</span>
+            <span class="pbd-plus">+</span>
+            <span class="pbd-base">${diagram.base}</span>
+            <span class="pbd-arrow">→</span>
+            <span class="pbd-result">${diagram.result}</span>
+            <div class="pbd-meaning">${diagram.meaning}</div>
+        </div>`;
+    }
+    if (diagram.type === "suffix-transform") {
+        return `<div class="suffix-transform-diagram">
+            <span class="std-base">${diagram.base}</span>
+            <span class="std-plus">+</span>
+            <span class="std-suffix">-${diagram.suffix}</span>
+            <span class="std-arrow">→</span>
+            <span class="std-result">${diagram.result}</span>
+            ${diagram.note ? `<div class="std-note">${diagram.note}</div>` : ""}
+        </div>`;
+    }
+    if (diagram.type === "comparison-table") {
+        return `<div class="comparison-table-diagram">
+            <div class="ct-row ct-header"><span>${diagram.headers[0]}</span><span>${diagram.headers[1]}</span></div>
+            ${diagram.rows.map(r => `<div class="ct-row"><span>${r[0]}</span><span>${r[1]}</span></div>`).join("")}
+            ${diagram.ruleNote ? `<div class="ct-note">${diagram.ruleNote}</div>` : ""}
+        </div>`;
+    }
+    if (diagram.type === "sound-map") {
+        return `<div class="sound-map-diagram">
+            <div class="sm-pattern">${diagram.pattern}</div>
+            <div class="sm-branches">${diagram.variants.map(v => `
+                <div class="sm-branch">
+                    <span class="sm-sound">"${v.sound}"</span>
+                    <span class="sm-examples">${v.examples.join(", ")}</span>
+                </div>
+            `).join("")}</div>
+        </div>`;
+    }
+    if (diagram.type === "root-tree") {
+        return `<div class="root-tree-diagram">
+            <div class="rt-root"><span class="rt-root-word">${diagram.root}</span><span class="rt-meaning">= ${diagram.meaning}</span></div>
+            <div class="rt-branches">${diagram.branches.map(b => `<span class="rt-branch">${b}</span>`).join("")}</div>
+        </div>`;
+    }
+    if (diagram.type === "vowel-team") {
+        return `<div class="vowel-team-diagram">
+            <div class="vt-team"><span class="vt-letters">${diagram.team}</span><span class="vt-sound">makes the ${diagram.sound} sound</span></div>
+            <div class="vt-examples">${diagram.examples.map(w => {
+                const idx = w.toLowerCase().indexOf(diagram.team.toLowerCase());
+                if (idx < 0) return `<span class="vt-word">${w}</span>`;
+                const before = w.substring(0, idx);
+                const match = w.substring(idx, idx + diagram.team.length);
+                const after = w.substring(idx + diagram.team.length);
+                return `<span class="vt-word">${before}<mark class="vt-mark">${match}</mark>${after}</span>`;
+            }).join("")}</div>
+        </div>`;
+    }
     return "";
+}
+
+// Replay audio button
+if ($("btn-teach-replay")) {
+    $("btn-teach-replay").addEventListener("click", () => {
+        const lesson = state.currentLesson;
+        if (!lesson || !lesson.teachSlides) return;
+        const slide = lesson.teachSlides[state.teachSlideIndex];
+        if (slide.content) speakNatural(slide.content);
+    });
 }
 
 $("btn-teach-next").addEventListener("click", () => {
@@ -4965,6 +5262,9 @@ function showSpeedDrillResults() {
 
 // Speed Drill event listeners
 $("btn-speed-level-back").addEventListener("click", () => {
+    state.mode = "spell";
+    document.querySelectorAll(".mode-tab").forEach(t => t.classList.remove("active"));
+    document.querySelector('.mode-tab[data-mode="spell"]').classList.add("active");
     showScreen("start");
     renderCategories();
 });
@@ -5261,8 +5561,10 @@ $("btn-dictation-back").addEventListener("click", () => {
 });
 
 $("btn-dictation-select-back").addEventListener("click", () => {
+    state.mode = "spell";
+    document.querySelectorAll(".mode-tab").forEach(t => t.classList.remove("active"));
+    document.querySelector('.mode-tab[data-mode="spell"]').classList.add("active");
     showScreen("start");
-    state.mode = "dictation";
     renderCategories();
 });
 
@@ -5460,6 +5762,9 @@ $("btn-phoneme-menu").addEventListener("click", () => {
 
 $("btn-phoneme-back").addEventListener("click", () => {
     state.phonemeGame = null;
+    state.mode = "spell";
+    document.querySelectorAll(".mode-tab").forEach(t => t.classList.remove("active"));
+    document.querySelector('.mode-tab[data-mode="spell"]').classList.add("active");
     showScreen("start");
     renderCategories();
 });
@@ -5699,6 +6004,9 @@ $("btn-morpheme-menu").addEventListener("click", () => {
 
 $("btn-morpheme-back").addEventListener("click", () => {
     state.morphemeGame = null;
+    state.mode = "spell";
+    document.querySelectorAll(".mode-tab").forEach(t => t.classList.remove("active"));
+    document.querySelector('.mode-tab[data-mode="spell"]').classList.add("active");
     showScreen("start");
     renderCategories();
 });

@@ -4158,6 +4158,544 @@ body {
     color: var(--success);
 }
 
+/* ===== Enhanced Lesson Teach Slides ===== */
+
+/* Progress dots */
+.teach-slide-progress {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    padding: 0.5rem 0;
+}
+
+.teach-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.12);
+    transition: all 0.2s ease;
+}
+
+.teach-dot.active {
+    background: var(--accent);
+    transform: scale(1.3);
+}
+
+.teach-dot.completed {
+    background: var(--success);
+}
+
+.teach-dot.interactive {
+    border: 2px solid #e17055;
+    background: transparent;
+}
+
+.teach-dot.interactive.active {
+    background: #e17055;
+}
+
+.teach-dot.interactive.completed {
+    background: #e17055;
+}
+
+/* Replay button */
+.btn-teach-replay {
+    font-size: 0.85rem !important;
+    padding: 0.5rem 1rem !important;
+    min-width: auto !important;
+}
+
+/* Disabled next button */
+.teach-slide-nav .btn.disabled {
+    opacity: 0.4;
+    pointer-events: none;
+}
+
+/* ===== Interactive Slide: Listen & Choose ===== */
+.teach-listen-choose {
+    margin-top: 1.25rem;
+}
+
+.teach-listen-btn {
+    margin-bottom: 1rem;
+    font-size: 1.1rem !important;
+}
+
+.teach-choices {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+}
+
+.teach-choice-btn {
+    display: block;
+    width: 100%;
+    padding: 0.9rem 1.2rem;
+    background: var(--bg);
+    border: 2px solid rgba(0, 0, 0, 0.08);
+    border-radius: var(--radius-sm);
+    font-family: var(--font);
+    font-size: 1.1rem;
+    font-weight: 500;
+    text-align: left;
+    cursor: pointer;
+    transition: all var(--transition);
+    color: var(--text);
+    letter-spacing: 0.04em;
+}
+
+.teach-choice-btn:hover:not(.disabled) {
+    border-color: var(--accent);
+    background: rgba(91, 75, 181, 0.05);
+    transform: translateX(4px);
+}
+
+.teach-choice-btn.disabled { pointer-events: none; opacity: 0.7; }
+.teach-choice-btn.correct { border-color: var(--success); background: rgba(42, 157, 143, 0.12); opacity: 1; }
+.teach-choice-btn.incorrect { border-color: var(--error); background: rgba(217, 79, 79, 0.1); opacity: 1; }
+
+/* ===== Interactive Slide: Tap the Pattern ===== */
+.teach-tap-word {
+    display: flex;
+    justify-content: center;
+    gap: 0;
+    font-size: 2.2rem;
+    font-weight: 700;
+    margin: 1rem 0;
+}
+
+.teach-tap-segment {
+    cursor: pointer;
+    padding: 0.3rem 0.4rem;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+    border: 2px solid transparent;
+}
+
+.teach-tap-segment:hover {
+    background: rgba(91, 75, 181, 0.08);
+    border-color: rgba(91, 75, 181, 0.2);
+}
+
+.teach-tap-segment.highlighted {
+    background: rgba(42, 157, 143, 0.2);
+    border-color: var(--success);
+    color: var(--success);
+}
+
+.teach-tap-segment.wrong-tap {
+    background: rgba(217, 79, 79, 0.1);
+    animation: shake 0.4s ease;
+}
+
+.teach-tap-hint {
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 0.95rem;
+    font-weight: 500;
+    margin-top: 0.5rem;
+}
+
+/* ===== Interactive Slide: Fill the Gap ===== */
+.teach-fill-gap {
+    margin-top: 1rem;
+    text-align: center;
+}
+
+.teach-gap-word {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+    letter-spacing: 0.05em;
+}
+
+.teach-gap-blank {
+    display: inline-block;
+    border-bottom: 3px solid var(--accent);
+    min-width: 2.5rem;
+    color: var(--accent);
+    font-weight: 800;
+    transition: all 0.3s ease;
+}
+
+.teach-gap-blank.filled {
+    border-bottom-color: var(--success);
+    color: var(--success);
+}
+
+.teach-gap-options {
+    display: flex;
+    justify-content: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.teach-gap-btn {
+    padding: 0.7rem 1.5rem;
+    background: var(--bg);
+    border: 2px solid rgba(0, 0, 0, 0.08);
+    border-radius: var(--radius-sm);
+    font-family: var(--font);
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all var(--transition);
+    color: var(--text);
+}
+
+.teach-gap-btn:hover:not(.disabled) {
+    border-color: var(--accent);
+    transform: translateY(-2px);
+}
+
+.teach-gap-btn.disabled { pointer-events: none; opacity: 0.6; }
+.teach-gap-btn.correct { border-color: var(--success); background: rgba(42, 157, 143, 0.12); opacity: 1; color: var(--success); }
+.teach-gap-btn.incorrect { border-color: var(--error); background: rgba(217, 79, 79, 0.1); opacity: 1; text-decoration: line-through; }
+
+/* ===== Interactive Slide: Sort It ===== */
+.teach-sort-container {
+    margin-top: 1rem;
+}
+
+.teach-sort-columns {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.teach-sort-column {
+    background: var(--bg);
+    border: 2px dashed rgba(0, 0, 0, 0.1);
+    border-radius: var(--radius-sm);
+    padding: 0.75rem;
+    min-height: 100px;
+    cursor: pointer;
+    transition: all var(--transition);
+}
+
+.teach-sort-column:hover {
+    border-color: var(--accent);
+    background: rgba(91, 75, 181, 0.03);
+}
+
+.teach-sort-header {
+    font-weight: 700;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--accent);
+    margin-bottom: 0.5rem;
+    text-align: center;
+}
+
+.teach-sort-pool {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    justify-content: center;
+}
+
+.teach-sort-word {
+    padding: 0.5rem 1rem;
+    background: var(--surface);
+    border: 2px solid rgba(0, 0, 0, 0.1);
+    border-radius: 20px;
+    font-family: var(--font);
+    font-size: 0.95rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all var(--transition);
+    color: var(--text);
+}
+
+.teach-sort-word:hover:not(.sorted) {
+    border-color: var(--accent);
+    transform: translateY(-2px);
+}
+
+.teach-sort-word.selected {
+    border-color: var(--accent);
+    background: rgba(91, 75, 181, 0.1);
+    box-shadow: 0 0 0 2px rgba(91, 75, 181, 0.3);
+}
+
+.teach-sort-word.sorted {
+    pointer-events: none;
+}
+
+.teach-sort-word.sorted.correct {
+    border-color: var(--success);
+    background: rgba(42, 157, 143, 0.1);
+}
+
+.teach-sort-word.wrong-sort {
+    animation: shake 0.4s ease;
+    border-color: var(--error);
+}
+
+/* ===== New Diagram Types ===== */
+
+/* Highlight Word */
+.highlight-word-diagram {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    justify-content: center;
+    margin-top: 0.5rem;
+}
+
+.hw-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.hw-word {
+    font-size: 1.4rem;
+    font-weight: 700;
+}
+
+.hw-mark {
+    background: rgba(231, 76, 60, 0.15);
+    color: var(--hw-color, #e74c3c);
+    padding: 0.1rem 0.3rem;
+    border-radius: 4px;
+    font-weight: 800;
+}
+
+.hw-note {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
+/* Prefix Breakdown */
+.prefix-breakdown-diagram, .suffix-transform-diagram {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    font-size: 1.4rem;
+    font-weight: 700;
+    padding: 1rem 0;
+}
+
+.pbd-prefix, .std-suffix {
+    color: #3498db;
+    background: rgba(52, 152, 219, 0.1);
+    padding: 0.2rem 0.5rem;
+    border-radius: 6px;
+}
+
+.pbd-base, .std-base {
+    color: var(--text);
+    background: var(--bg-light);
+    padding: 0.2rem 0.5rem;
+    border-radius: 6px;
+}
+
+.pbd-plus, .std-plus { color: var(--text-muted); font-size: 1.2rem; }
+.pbd-arrow, .std-arrow { color: var(--accent); font-size: 1.4rem; }
+
+.pbd-result, .std-result {
+    color: var(--success);
+    background: rgba(42, 157, 143, 0.1);
+    padding: 0.2rem 0.5rem;
+    border-radius: 6px;
+}
+
+.pbd-meaning, .std-note {
+    width: 100%;
+    text-align: center;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--text-muted);
+    margin-top: 0.25rem;
+}
+
+/* Comparison Table */
+.comparison-table-diagram {
+    margin-top: 0.5rem;
+}
+
+.ct-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+    padding: 0.6rem;
+    border-radius: 6px;
+}
+
+.ct-row span {
+    text-align: center;
+    font-size: 1rem;
+}
+
+.ct-header {
+    background: rgba(91, 75, 181, 0.1);
+    font-weight: 700;
+    color: var(--accent);
+}
+
+.ct-header span {
+    font-size: 1.1rem;
+}
+
+.ct-row:not(.ct-header) {
+    background: var(--bg);
+}
+
+.ct-note {
+    text-align: center;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    margin-top: 0.5rem;
+    font-weight: 500;
+}
+
+/* Sound Map */
+.sound-map-diagram {
+    text-align: center;
+    padding: 0.5rem 0;
+}
+
+.sm-pattern {
+    font-size: 2rem;
+    font-weight: 800;
+    color: var(--accent);
+    margin-bottom: 0.75rem;
+}
+
+.sm-branches {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.sm-branch {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.5rem 0.8rem;
+    background: var(--bg);
+    border-radius: 6px;
+}
+
+.sm-sound {
+    font-weight: 700;
+    color: #e17055;
+    min-width: 3rem;
+}
+
+.sm-examples {
+    color: var(--text);
+    font-size: 0.95rem;
+}
+
+/* Root Tree */
+.root-tree-diagram {
+    text-align: center;
+    padding: 0.5rem 0;
+}
+
+.rt-root {
+    margin-bottom: 0.75rem;
+}
+
+.rt-root-word {
+    font-size: 1.6rem;
+    font-weight: 800;
+    color: var(--accent);
+}
+
+.rt-meaning {
+    display: block;
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
+.rt-branches {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.rt-branch {
+    background: var(--bg);
+    padding: 0.4rem 0.8rem;
+    border-radius: 20px;
+    font-size: 1rem;
+    font-weight: 500;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+/* Vowel Team */
+.vowel-team-diagram {
+    text-align: center;
+    padding: 0.5rem 0;
+}
+
+.vt-team {
+    margin-bottom: 0.75rem;
+}
+
+.vt-letters {
+    font-size: 2rem;
+    font-weight: 800;
+    color: var(--accent);
+    background: rgba(91, 75, 181, 0.1);
+    padding: 0.2rem 0.6rem;
+    border-radius: 8px;
+}
+
+.vt-sound {
+    display: block;
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    margin-top: 0.3rem;
+}
+
+.vt-examples {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.vt-word {
+    background: var(--bg);
+    padding: 0.3rem 0.7rem;
+    border-radius: 20px;
+    font-size: 1.1rem;
+    font-weight: 500;
+}
+
+.vt-mark {
+    background: rgba(91, 75, 181, 0.15);
+    color: var(--accent);
+    font-weight: 800;
+    padding: 0.05rem 0.2rem;
+    border-radius: 3px;
+}
+
+/* Mobile: sort columns stack */
+@media (max-width: 480px) {
+    .teach-sort-columns {
+        grid-template-columns: 1fr;
+    }
+    .teach-tap-word {
+        font-size: 1.8rem;
+    }
+    .teach-gap-word {
+        font-size: 1.6rem;
+    }
+}
+
 /* ===== UX Fixes ===== */
 
 /* Reduced motion support */
