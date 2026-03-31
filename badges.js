@@ -215,6 +215,44 @@ const BADGES = {
             condition: function (stats) {
                 return stats.level >= 10;
             }
+        },
+
+        // --- Daily Streak Badges ---
+        {
+            id: "daily_3",
+            name: "3-Day Streak",
+            description: "Practice 3 days in a row",
+            icon: "\uD83D\uDD25",
+            condition: function (stats) {
+                return stats.dailyStreak >= 3;
+            }
+        },
+        {
+            id: "daily_7",
+            name: "Week Warrior",
+            description: "Practice 7 days in a row",
+            icon: "\uD83D\uDCAA",
+            condition: function (stats) {
+                return stats.dailyStreak >= 7;
+            }
+        },
+        {
+            id: "daily_14",
+            name: "Two Week Champion",
+            description: "Practice 14 days in a row",
+            icon: "\uD83C\uDFC5",
+            condition: function (stats) {
+                return stats.dailyStreak >= 14;
+            }
+        },
+        {
+            id: "daily_30",
+            name: "Month Master",
+            description: "Practice 30 days in a row",
+            icon: "\uD83D\uDC51",
+            condition: function (stats) {
+                return stats.dailyStreak >= 30;
+            }
         }
     ],
 
@@ -320,7 +358,10 @@ const BADGES = {
             sessionAccuracy:  sessionAccuracy,
             sessionCorrect:   sessionCorrect,
             sessionAttempted: sessionAttempted,
-            sessionPerfect:   sessionPerfect
+            sessionPerfect:   sessionPerfect,
+
+            // Daily streak
+            dailyStreak: (typeof SRS !== "undefined" && SRS.getDailyStreak) ? SRS.getDailyStreak() : 0
         };
     },
 

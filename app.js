@@ -54,6 +54,16 @@ const state = {
     spellingBee: null,  // { words, index, correct, total, results }
     // Word Review (after reading)
     wordReview: null,  // { words, index }
+    // Phoneme game
+    phonemeGame: null,  // { category, sounds, index, correct, total, results }
+    // Morpheme builder
+    morphemeGame: null, // { words, index, correct, total, builtParts, results }
+    // Speed Drill
+    speedDrill: null,   // { level, words, index, known, helped, startTime, wordStartTime, timerInterval, responseTimes }
+    // Dictation
+    dictation: null,    // { level, sentences, index, sentencesCorrect, totalWords, wordsCorrect, missedWords, results }
+    // Comprehension
+    comprehension: null, // { passage, questions, index, correct, total, results }
 };
 
 // ===== DOM Elements =====
@@ -71,6 +81,18 @@ const screens = {
     beeResult: $("bee-result-screen"),
     dashboard: $("dashboard-screen"),
     wordReview: $("word-review-screen"),
+    phoneme: $("phoneme-screen"),
+    phonemeResult: $("phoneme-result-screen"),
+    morpheme: $("morpheme-screen"),
+    morphemeResult: $("morpheme-result-screen"),
+    speedLevel: $("speed-level-screen"),
+    speedDrill: $("speed-drill-screen"),
+    speedResult: $("speed-result-screen"),
+    dictationSelect: $("dictation-select-screen"),
+    dictation: $("dictation-screen"),
+    dictationResult: $("dictation-result-screen"),
+    comprehension: $("comprehension-screen"),
+    comprehensionResult: $("comprehension-result-screen"),
 };
 
 // ===== Load Persistent Stats =====
@@ -90,6 +112,8 @@ function savePersistentStats() {
     saved.totalWordsAttempted += state.wordsAttempted;
     saved.sessionsPlayed++;
     SRS.saveStats(saved);
+    SRS.recordDailyPractice();
+    updateStreakDisplay();
 }
 
 // ===== Speech Engine =====
@@ -393,6 +417,66 @@ function renderCategories() {
 
     // Show daily challenge
     renderDailyChallenge();
+
+    // Phoneme mode shows category selection
+    if (state.mode === "phoneme") {
+        title.textContent = "Phoneme-Grapheme Mapping";
+        const catColors = { "Digraphs": "#6c5ce7", "Blends": "#e17055", "Vowel Teams": "#00b894" };
+        const catIcons = { "Digraphs": "\uD83D\uDD24", "Blends": "\uD83E\uDDE9", "Vowel Teams": "\uD83C\uDFB5" };
+        Object.entries(PHONEME_DATA).forEach(([cat, sounds]) => {
+            const card = document.createElement("button");
+            card.className = "category-card";
+            card.style.setProperty("--card-color", catColors[cat] || "#5b4bb5");
+            card.innerHTML = `
+                <span class="category-icon">${catIcons[cat] || "\uD83D\uDD0A"}</span>
+                <span class="category-name">${cat}</span>
+                <span class="category-count">${sounds.length} sounds</span>
+            `;
+            card.addEventListener("click", () => startPhonemeGame(cat));
+            grid.appendChild(card);
+        });
+        return;
+    }
+
+    // Morpheme mode goes straight into the builder
+    if (state.mode === "morpheme") {
+        title.textContent = "Morpheme Word Builder";
+        const card = document.createElement("button");
+        card.className = "category-card";
+        card.style.setProperty("--card-color", "#5b4bb5");
+        card.innerHTML = `
+            <span class="category-icon">\uD83E\uDDF1</span>
+            <span class="category-name">Build Words</span>
+            <span class="category-count">${MORPHEME_DATA.words.length} words</span>
+        `;
+        card.addEventListener("click", () => startMorphemeBuilder());
+        grid.appendChild(card);
+
+        // Legend
+        const legend = document.createElement("div");
+        legend.className = "morpheme-legend";
+        legend.innerHTML = `
+            <span class="morpheme-legend-item"><span class="morpheme-legend-dot prefix-dot"></span> Prefix</span>
+            <span class="morpheme-legend-item"><span class="morpheme-legend-dot root-dot"></span> Root</span>
+            <span class="morpheme-legend-item"><span class="morpheme-legend-dot suffix-dot"></span> Suffix</span>
+        `;
+        grid.appendChild(legend);
+        return;
+    }
+
+    // Speed Drill mode goes to level selection
+    if (state.mode === "speed") {
+        showScreen("speedLevel");
+        renderSpeedLevelSelect();
+        return;
+    }
+
+    // Dictation mode goes to level selection
+    if (state.mode === "dictation") {
+        showScreen("dictationSelect");
+        renderDictationLevelSelect();
+        return;
+    }
 
     // Scramble mode shows same categories but starts scramble game
     if (state.mode === "scramble") {
@@ -2679,6 +2763,34 @@ document.addEventListener("keydown", (e) => {
 // ================================================================
 //  SETTINGS PANEL
 // ================================================================
+// Parent gate for settings reset buttons
+let parentGateA = 0, parentGateB = 0;
+function resetParentGate() {
+    parentGateA = Math.floor(Math.random() * 20) + 10;
+    parentGateB = Math.floor(Math.random() * 20) + 10;
+    const qEl = $("parent-gate-question");
+    if (qEl) qEl.textContent = parentGateA + " + " + parentGateB + " = ";
+    const aEl = $("parent-gate-answer");
+    if (aEl) aEl.value = "";
+    const gate = $("parent-gate");
+    if (gate) gate.classList.remove("hidden");
+    const btns = $("reset-buttons");
+    if (btns) btns.classList.add("hidden");
+}
+
+if ($("btn-parent-gate-unlock")) {
+    $("btn-parent-gate-unlock").addEventListener("click", () => {
+        const answer = parseInt($("parent-gate-answer").value, 10);
+        if (answer === parentGateA + parentGateB) {
+            $("parent-gate").classList.add("hidden");
+            $("reset-buttons").classList.remove("hidden");
+        } else {
+            $("parent-gate-answer").value = "";
+            $("parent-gate-answer").placeholder = "Try again";
+        }
+    });
+}
+
 $("btn-settings").addEventListener("click", () => {
     $("settings-overlay").classList.remove("hidden");
     // Pre-fill API key if exists
@@ -2688,6 +2800,7 @@ $("btn-settings").addEventListener("click", () => {
     $("api-key-status").className = key ? "settings-hint success" : "settings-hint";
     renderProfileStats();
     renderCustomWordList();
+    resetParentGate();
 });
 
 $("btn-settings-close").addEventListener("click", () => {
@@ -3830,12 +3943,20 @@ function showReadingResults() {
             chip.title = `Heard: "${w.spokenAs}"`;
             struggledWordsEl.appendChild(chip);
         });
-        $("btn-read-practice").classList.remove("hidden");
         if ($("btn-read-review")) $("btn-read-review").classList.remove("hidden");
     } else {
         struggledContainer.classList.add("hidden");
-        $("btn-read-practice").classList.add("hidden");
         if ($("btn-read-review")) $("btn-read-review").classList.add("hidden");
+    }
+
+    // Show/hide comprehension check button
+    const compBtn = $("btn-comprehension-check");
+    if (compBtn) {
+        if (state.currentPassage && state.currentPassage.questions && state.currentPassage.questions.length > 0) {
+            compBtn.classList.remove("hidden");
+        } else {
+            compBtn.classList.add("hidden");
+        }
     }
 
     // Save reading stats
@@ -4117,10 +4238,6 @@ $("btn-read-next").addEventListener("click", () => {
 
 $("btn-read-skip").addEventListener("click", () => {
     skipSentence();
-});
-
-$("btn-read-practice").addEventListener("click", () => {
-    practiceStruggledWords();
 });
 
 $("btn-read-again").addEventListener("click", () => {
@@ -4657,6 +4774,1178 @@ $("btn-bee-done").addEventListener("click", () => {
 });
 
 // ================================================================
+//  SPEED DRILL
+// ================================================================
+
+function renderSpeedLevelSelect() {
+    const grid = $("speed-level-grid");
+    grid.innerHTML = "";
+
+    Object.entries(SIGHT_WORDS).forEach(([level, data]) => {
+        const best = SRS.getSpeedDrillBest(level);
+        const bestHTML = best
+            ? `<span class="speed-level-best">Best: ${best.wpm.toFixed(1)} WPM</span>`
+            : `<span class="speed-level-best">No attempts yet</span>`;
+
+        const card = document.createElement("button");
+        card.className = "category-card";
+        card.style.setProperty("--card-color", data.color);
+        card.innerHTML = `
+            <span class="category-icon">${data.icon}</span>
+            <span class="category-name">${data.label}</span>
+            <span class="category-count">${data.description}</span>
+            ${bestHTML}
+        `;
+        card.addEventListener("click", () => startSpeedDrill(parseInt(level)));
+        grid.appendChild(card);
+    });
+}
+
+function startSpeedDrill(level) {
+    const data = SIGHT_WORDS[level];
+    if (!data) return;
+
+    const words = shuffle([...data.words]);
+
+    state.speedDrill = {
+        level,
+        words,
+        index: 0,
+        known: [],
+        helped: [],
+        startTime: Date.now(),
+        wordStartTime: Date.now(),
+        timerInterval: null,
+        responseTimes: [],
+    };
+
+    $("speed-drill-label").innerHTML = `&#9889; ${data.label}`;
+    showScreen("speedDrill");
+    showNextSpeedWord();
+
+    // Start the elapsed timer
+    state.speedDrill.timerInterval = setInterval(updateSpeedTimer, 100);
+}
+
+function updateSpeedTimer() {
+    if (!state.speedDrill) return;
+    const elapsed = (Date.now() - state.speedDrill.startTime) / 1000;
+    $("speed-timer").textContent = elapsed.toFixed(1) + "s";
+}
+
+function showNextSpeedWord() {
+    const drill = state.speedDrill;
+    if (!drill) return;
+
+    if (drill.index >= drill.words.length) {
+        showSpeedDrillResults();
+        return;
+    }
+
+    const word = drill.words[drill.index];
+    $("speed-word").textContent = word;
+    $("speed-word").classList.remove("speed-word-enter");
+    // Force reflow for animation restart
+    void $("speed-word").offsetWidth;
+    $("speed-word").classList.add("speed-word-enter");
+
+    $("speed-progress").textContent = `Word ${drill.index + 1} of ${drill.words.length}`;
+    drill.wordStartTime = Date.now();
+}
+
+function speedWordKnown() {
+    const drill = state.speedDrill;
+    if (!drill || drill.index >= drill.words.length) return;
+
+    const responseTime = Date.now() - drill.wordStartTime;
+    drill.responseTimes.push(responseTime);
+    drill.known.push(drill.words[drill.index]);
+    drill.index++;
+
+    Sound.correct();
+    showNextSpeedWord();
+}
+
+function speedWordHelp() {
+    const drill = state.speedDrill;
+    if (!drill || drill.index >= drill.words.length) return;
+
+    const word = drill.words[drill.index];
+    const responseTime = Date.now() - drill.wordStartTime;
+    drill.responseTimes.push(responseTime);
+    drill.helped.push(word);
+    drill.index++;
+
+    // Read the word aloud
+    speak(word, 0.7);
+    Sound.incorrect();
+    showNextSpeedWord();
+}
+
+function showSpeedDrillResults() {
+    const drill = state.speedDrill;
+    if (!drill) return;
+
+    // Stop the timer
+    if (drill.timerInterval) {
+        clearInterval(drill.timerInterval);
+        drill.timerInterval = null;
+    }
+
+    const totalTime = (Date.now() - drill.startTime) / 1000;       // seconds
+    const totalWords = drill.words.length;
+    const knownCount = drill.known.length;
+    const helpedCount = drill.helped.length;
+    const accuracy = Math.round((knownCount / totalWords) * 100);
+    const wpm = totalWords / (totalTime / 60);                      // words per minute
+
+    // Save result
+    const best = SRS.saveSpeedDrillResult(drill.level, wpm, accuracy, drill.helped);
+    SRS.recordDailyPractice();
+    updateStreakDisplay();
+
+    // Build results display
+    const statsHTML = `
+        <div class="result-stat">
+            <span class="result-stat-value">${wpm.toFixed(1)}</span>
+            <span class="result-stat-label">Words/Min</span>
+        </div>
+        <div class="result-stat">
+            <span class="result-stat-value">${totalTime.toFixed(1)}s</span>
+            <span class="result-stat-label">Total Time</span>
+        </div>
+        <div class="result-stat">
+            <span class="result-stat-value">${accuracy}%</span>
+            <span class="result-stat-label">Accuracy</span>
+        </div>
+        <div class="result-stat">
+            <span class="result-stat-value">${knownCount}/${totalWords}</span>
+            <span class="result-stat-label">Known</span>
+        </div>
+    `;
+    $("speed-result-stats").innerHTML = statsHTML;
+
+    // Personal best comparison
+    const pbEl = $("speed-personal-best");
+    if (best) {
+        const isNewBest = best.wpm === wpm && best.date >= Date.now() - 2000;
+        if (isNewBest) {
+            pbEl.innerHTML = `<div class="speed-pb speed-pb-new">&#11014; New Personal Best!</div>`;
+            Sound.badgeUnlock();
+        } else {
+            pbEl.innerHTML = `<div class="speed-pb">Personal Best: ${best.wpm.toFixed(1)} WPM (${best.accuracy}%)</div>`;
+        }
+    } else {
+        pbEl.innerHTML = "";
+    }
+
+    // Title
+    if (accuracy >= 90) {
+        $("speed-result-title").textContent = "Amazing Speed!";
+    } else if (accuracy >= 70) {
+        $("speed-result-title").textContent = "Great Job!";
+    } else {
+        $("speed-result-title").textContent = "Keep Practicing!";
+    }
+
+    // Helped words
+    const helpedEl = $("speed-helped-words");
+    const helpedListEl = $("speed-helped-list");
+    if (helpedCount > 0) {
+        helpedEl.classList.remove("hidden");
+        helpedListEl.innerHTML = drill.helped
+            .map(w => `<span class="speed-helped-word">${w}</span>`)
+            .join("");
+    } else {
+        helpedEl.classList.add("hidden");
+    }
+
+    showScreen("speedResult");
+}
+
+// Speed Drill event listeners
+$("btn-speed-level-back").addEventListener("click", () => {
+    showScreen("start");
+    renderCategories();
+});
+
+$("btn-speed-drill-back").addEventListener("click", () => {
+    if (state.speedDrill && state.speedDrill.timerInterval) {
+        clearInterval(state.speedDrill.timerInterval);
+    }
+    state.speedDrill = null;
+    showScreen("speedLevel");
+    renderSpeedLevelSelect();
+});
+
+$("btn-speed-know").addEventListener("click", speedWordKnown);
+$("btn-speed-help").addEventListener("click", speedWordHelp);
+
+$("btn-speed-retry").addEventListener("click", () => {
+    const level = state.speedDrill ? state.speedDrill.level : 1;
+    startSpeedDrill(level);
+});
+
+$("btn-speed-levels").addEventListener("click", () => {
+    state.speedDrill = null;
+    showScreen("speedLevel");
+    renderSpeedLevelSelect();
+});
+
+// Keyboard shortcuts for speed drill
+document.addEventListener("keydown", (e) => {
+    if (!state.speedDrill) return;
+    if (!screens.speedDrill.classList.contains("active")) return;
+
+    if (e.key === "Enter" || e.key === " " || e.key === "ArrowRight") {
+        e.preventDefault();
+        speedWordKnown();
+    } else if (e.key === "h" || e.key === "H" || e.key === "ArrowDown") {
+        e.preventDefault();
+        speedWordHelp();
+    }
+});
+
+// ================================================================
+//  DICTATION MODE
+// ================================================================
+
+function renderDictationLevelSelect() {
+    const grid = $("dictation-level-grid");
+    grid.innerHTML = "";
+
+    Object.entries(DICTATION_SENTENCES).forEach(([name, data]) => {
+        const card = document.createElement("button");
+        card.className = "category-card";
+        card.style.setProperty("--card-color", data.color);
+        card.innerHTML = `
+            <span class="category-icon">${data.icon}</span>
+            <span class="category-name">${name}</span>
+            <span class="category-count">${data.sentences.length} sentences</span>
+        `;
+        card.addEventListener("click", () => startDictation(name));
+        grid.appendChild(card);
+    });
+}
+
+function startDictation(level) {
+    const data = DICTATION_SENTENCES[level];
+    if (!data) return;
+
+    // Pick 8 sentences, shuffle
+    const picked = shuffle([...data.sentences]).slice(0, 8);
+
+    state.dictation = {
+        level,
+        sentences: picked,
+        index: 0,
+        sentencesCorrect: 0,
+        totalWords: 0,
+        wordsCorrect: 0,
+        missedWords: [],
+        results: [],
+    };
+
+    showScreen("dictation");
+    $("dictation-level-label").textContent = `${data.icon} ${level}`;
+    loadDictationSentence();
+}
+
+function loadDictationSentence() {
+    const d = state.dictation;
+    if (!d) return;
+
+    $("dictation-counter").textContent = `Sentence ${d.index + 1} of ${d.sentences.length}`;
+    $("dictation-input").value = "";
+    $("dictation-feedback").classList.add("hidden");
+    $("dictation-feedback").innerHTML = "";
+    $("dictation-next").classList.add("hidden");
+    $("dictation-input").disabled = false;
+    $("btn-dictation-check").classList.remove("hidden");
+
+    // Auto-play the sentence
+    setTimeout(() => playDictationSentence(), 400);
+}
+
+function playDictationSentence() {
+    const d = state.dictation;
+    if (!d) return;
+    const sentence = d.sentences[d.index];
+    speak(sentence, 0.82);
+}
+
+function playDictationSlow() {
+    const d = state.dictation;
+    if (!d) return;
+    const sentence = d.sentences[d.index];
+    const words = sentence.split(/\s+/);
+
+    window.speechSynthesis.cancel();
+
+    const token = {};
+    _speechQueue = token;
+
+    (async () => {
+        for (let i = 0; i < words.length; i++) {
+            if (_speechQueue !== token) return;
+            await _utter(words[i], { rate: 0.7, pitch: 0.97, pause: 500 });
+        }
+    })();
+}
+
+function checkDictation() {
+    const d = state.dictation;
+    if (!d) return;
+
+    const sentence = d.sentences[d.index];
+    const typed = $("dictation-input").value.trim();
+
+    // Normalize: strip punctuation for comparison, keep words
+    const stripPunct = (s) => s.replace(/[^\w\s']/g, "").toLowerCase();
+    const targetWords = sentence.split(/\s+/);
+    const targetNorm = targetWords.map(w => stripPunct(w)).filter(w => w.length > 0);
+    const typedWords = typed.split(/\s+/).filter(w => w.length > 0);
+    const typedNorm = typedWords.map(w => stripPunct(w));
+
+    // Compare word by word
+    const maxLen = Math.max(targetWords.length, typedNorm.length);
+    let allCorrect = true;
+    const wordResults = [];
+
+    for (let i = 0; i < maxLen; i++) {
+        const target = targetWords[i] || "";
+        const targetClean = targetNorm[i] || "";
+        const typedClean = typedNorm[i] || "";
+        const correct = targetClean === typedClean;
+
+        if (!correct) allCorrect = false;
+        wordResults.push({ target, typed: typedWords[i] || "", correct });
+
+        d.totalWords++;
+        if (correct) {
+            d.wordsCorrect++;
+        } else if (target) {
+            const cleanTarget = target.replace(/[^\w']/g, "").toLowerCase();
+            if (cleanTarget && !d.missedWords.includes(cleanTarget)) {
+                d.missedWords.push(cleanTarget);
+            }
+        }
+    }
+
+    if (allCorrect) d.sentencesCorrect++;
+
+    d.results.push({
+        sentence,
+        typed,
+        correct: allCorrect,
+        wordResults,
+    });
+
+    renderDictationFeedback(wordResults);
+
+    $("dictation-input").disabled = true;
+    $("btn-dictation-check").classList.add("hidden");
+    $("dictation-next").classList.remove("hidden");
+
+    if (allCorrect) {
+        Sound.correct();
+    } else {
+        Sound.incorrect();
+    }
+}
+
+function renderDictationFeedback(wordResults) {
+    const container = $("dictation-feedback");
+    container.classList.remove("hidden");
+    container.innerHTML = "";
+
+    wordResults.forEach(({ target, typed, correct }) => {
+        const block = document.createElement("div");
+        block.className = `dictation-word-block ${correct ? "correct" : "incorrect"}`;
+
+        const typedEl = document.createElement("span");
+        typedEl.className = "dictation-word-typed";
+        typedEl.textContent = typed || "\u2014";
+        block.appendChild(typedEl);
+
+        if (!correct && target) {
+            const correctEl = document.createElement("span");
+            correctEl.className = "dictation-word-correct";
+            correctEl.textContent = target;
+            block.appendChild(correctEl);
+        }
+
+        container.appendChild(block);
+    });
+}
+
+function nextDictationSentence() {
+    const d = state.dictation;
+    if (!d) return;
+
+    d.index++;
+    if (d.index >= d.sentences.length) {
+        showDictationResults();
+    } else {
+        loadDictationSentence();
+    }
+}
+
+function showDictationResults() {
+    const d = state.dictation;
+    if (!d) return;
+
+    const pct = d.totalWords > 0 ? Math.round((d.wordsCorrect / d.totalWords) * 100) : 0;
+
+    let title, emoji;
+    if (pct >= 90) { title = "Outstanding!"; emoji = "\uD83C\uDF1F"; }
+    else if (pct >= 70) { title = "Great Job!"; emoji = "\uD83D\uDCAA"; }
+    else if (pct >= 50) { title = "Nice Effort!"; emoji = "\uD83D\uDC4D"; }
+    else { title = "Keep Practicing!"; emoji = "\uD83D\uDCAB"; }
+
+    $("dictation-result-title").textContent = `${emoji} ${title}`;
+
+    $("dictation-result-stats").innerHTML = `
+        <div class="result-stat">
+            <span class="result-stat-value">${d.sentencesCorrect} / ${d.sentences.length}</span>
+            <span class="result-stat-label">Sentences Perfect</span>
+        </div>
+        <div class="result-stat">
+            <span class="result-stat-value">${pct}%</span>
+            <span class="result-stat-label">Word Accuracy</span>
+        </div>
+        <div class="result-stat">
+            <span class="result-stat-value">${d.wordsCorrect} / ${d.totalWords}</span>
+            <span class="result-stat-label">Words Correct</span>
+        </div>
+    `;
+
+    const missedContainer = $("dictation-missed");
+    const missedWordsEl = $("dictation-missed-words");
+    if (d.missedWords.length > 0) {
+        missedContainer.classList.remove("hidden");
+        missedWordsEl.innerHTML = d.missedWords.map(w =>
+            `<span class="dictation-missed-word">${w}</span>`
+        ).join("");
+    } else {
+        missedContainer.classList.add("hidden");
+    }
+
+    SRS.saveDictationResult(d.level, d.sentencesCorrect, d.sentences.length, pct, d.missedWords);
+    SRS.recordDailyPractice();
+    updateStreakDisplay();
+
+    if (pct >= 70) Sound.levelUp();
+
+    showScreen("dictationResult");
+}
+
+// Dictation event listeners
+$("btn-dictation-listen").addEventListener("click", () => playDictationSentence());
+$("btn-dictation-repeat").addEventListener("click", () => playDictationSentence());
+$("btn-dictation-slow").addEventListener("click", () => playDictationSlow());
+$("btn-dictation-check").addEventListener("click", () => checkDictation());
+$("btn-dictation-next").addEventListener("click", () => nextDictationSentence());
+
+$("dictation-input").addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        if (!$("dictation-input").disabled) checkDictation();
+    }
+});
+
+$("btn-dictation-back").addEventListener("click", () => {
+    state.dictation = null;
+    showScreen("dictationSelect");
+    renderDictationLevelSelect();
+});
+
+$("btn-dictation-select-back").addEventListener("click", () => {
+    showScreen("start");
+    state.mode = "dictation";
+    renderCategories();
+});
+
+$("btn-dictation-again").addEventListener("click", () => {
+    const level = state.dictation?.level;
+    state.dictation = null;
+    if (level) startDictation(level);
+});
+
+$("btn-dictation-levels").addEventListener("click", () => {
+    state.dictation = null;
+    showScreen("dictationSelect");
+    renderDictationLevelSelect();
+});
+
+// ================================================================
+//  PHONEME-GRAPHEME MAPPING GAME
+// ================================================================
+
+function startPhonemeGame(category) {
+    const sounds = [...PHONEME_DATA[category]];
+    for (let i = sounds.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [sounds[i], sounds[j]] = [sounds[j], sounds[i]];
+    }
+    const picked = sounds.slice(0, Math.min(10, sounds.length));
+
+    state.phonemeGame = {
+        category,
+        sounds: picked,
+        index: 0,
+        correct: 0,
+        total: picked.length,
+        results: [],
+    };
+
+    showScreen("phoneme");
+    $("phoneme-category-label").textContent = category;
+    loadPhonemeRound();
+}
+
+function loadPhonemeRound() {
+    const pg = state.phonemeGame;
+    if (!pg || pg.index >= pg.sounds.length) {
+        showPhonemeResults();
+        return;
+    }
+
+    const current = pg.sounds[pg.index];
+    $("phoneme-counter").textContent = `${pg.index + 1} / ${pg.total}`;
+    $("phoneme-score").textContent = pg.correct;
+    $("phoneme-progress-fill").style.width = `${(pg.index / pg.total) * 100}%`;
+
+    $("phoneme-feedback").classList.add("hidden");
+    $("phoneme-prompt").classList.remove("hidden");
+
+    // Build choices: correct spelling + distractors from all categories
+    const allSpellings = [];
+    Object.values(PHONEME_DATA).forEach(catSounds => {
+        catSounds.forEach(s => {
+            s.spellings.forEach(sp => {
+                if (!current.spellings.includes(sp) && !allSpellings.includes(sp)) {
+                    allSpellings.push(sp);
+                }
+            });
+        });
+    });
+
+    for (let i = allSpellings.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [allSpellings[i], allSpellings[j]] = [allSpellings[j], allSpellings[i]];
+    }
+
+    const correctSpelling = current.spellings[Math.floor(Math.random() * current.spellings.length)];
+    const distractorCount = Math.min(3, allSpellings.length);
+    const distractors = allSpellings.slice(0, distractorCount);
+
+    const choices = [correctSpelling, ...distractors];
+    for (let i = choices.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [choices[i], choices[j]] = [choices[j], choices[i]];
+    }
+
+    $("phoneme-question").textContent = `Which spelling makes the "${current.sound.toUpperCase()}" sound?`;
+
+    const container = $("phoneme-choices");
+    container.innerHTML = "";
+    choices.forEach(sp => {
+        const card = document.createElement("button");
+        card.className = "phoneme-choice-card";
+        card.textContent = sp;
+        card.addEventListener("click", () => checkPhonemeAnswer(sp, correctSpelling, current));
+        container.appendChild(card);
+    });
+
+    setTimeout(() => playPhonemeSound(current), 400);
+}
+
+function playPhonemeSound(soundData) {
+    const spelling = soundData.spellings[0];
+    const examples = soundData.examples[spelling];
+    if (examples && examples.length > 0) {
+        speak(examples[0], 0.75);
+    }
+}
+
+$("btn-phoneme-play").addEventListener("click", () => {
+    const pg = state.phonemeGame;
+    if (!pg) return;
+    playPhonemeSound(pg.sounds[pg.index]);
+});
+
+function checkPhonemeAnswer(selected, correct, soundData) {
+    const pg = state.phonemeGame;
+    if (!pg) return;
+
+    const isCorrect = selected === correct;
+    if (isCorrect) { pg.correct++; Sound.correct(); }
+    else { Sound.incorrect(); }
+
+    pg.results.push({ sound: soundData.sound, selected, correct, isCorrect });
+
+    const cards = document.querySelectorAll(".phoneme-choice-card");
+    cards.forEach(card => {
+        card.classList.add("disabled");
+        if (card.textContent === correct) {
+            card.classList.add(isCorrect ? "correct" : "revealed");
+        } else if (card.textContent === selected && !isCorrect) {
+            card.classList.add("incorrect");
+        }
+    });
+
+    $("phoneme-feedback").classList.remove("hidden");
+    $("phoneme-feedback-icon").textContent = isCorrect ? "\u2705" : "\u274C";
+    $("phoneme-feedback-text").textContent = isCorrect
+        ? `Correct! "${correct}" makes the ${soundData.sound.toUpperCase()} sound.`
+        : `Not quite. The "${soundData.sound.toUpperCase()}" sound is spelled "${correct}".`;
+
+    const examplesHTML = soundData.spellings.map(sp => {
+        const words = soundData.examples[sp] || [];
+        return `<strong>${sp}</strong>: ${words.join(", ")}`;
+    }).join("<br>");
+    $("phoneme-feedback-examples").innerHTML = examplesHTML;
+
+    $("phoneme-score").textContent = pg.correct;
+
+    setTimeout(() => {
+        const words = soundData.examples[correct] || [];
+        if (words.length > 0) speak(words.join(", "), 0.8);
+    }, 500);
+}
+
+$("btn-phoneme-next").addEventListener("click", () => {
+    const pg = state.phonemeGame;
+    if (!pg) return;
+    pg.index++;
+    loadPhonemeRound();
+});
+
+function showPhonemeResults() {
+    const pg = state.phonemeGame;
+    if (!pg) return;
+
+    $("phoneme-progress-fill").style.width = "100%";
+    SRS.savePhonemeResult(pg.category, pg.correct, pg.total);
+    SRS.recordDailyPractice();
+    updateStreakDisplay();
+
+    const pct = Math.round((pg.correct / pg.total) * 100);
+    let emoji, msg;
+    if (pct === 100) { emoji = "\uD83C\uDF1F"; msg = "Perfect Score!"; Sound.badgeUnlock(); }
+    else if (pct >= 80) { emoji = "\uD83C\uDF89"; msg = "Great Job!"; Sound.levelUp(); }
+    else if (pct >= 60) { emoji = "\uD83D\uDCAA"; msg = "Good Effort!"; Sound.correct(); }
+    else { emoji = "\uD83D\uDCD6"; msg = "Keep Practicing!"; }
+
+    showScreen("phonemeResult");
+    $("phoneme-result-title").textContent = `${emoji} ${msg}`;
+    $("phoneme-result-stats").innerHTML = `
+        <div class="stat"><span class="stat-value">${pg.correct}</span><span class="stat-label">Correct</span></div>
+        <div class="stat"><span class="stat-value">${pg.total}</span><span class="stat-label">Total</span></div>
+        <div class="stat"><span class="stat-value">${pct}%</span><span class="stat-label">Accuracy</span></div>
+    `;
+}
+
+$("btn-phoneme-replay").addEventListener("click", () => {
+    const pg = state.phonemeGame;
+    if (pg) startPhonemeGame(pg.category);
+});
+
+$("btn-phoneme-menu").addEventListener("click", () => {
+    state.phonemeGame = null;
+    showScreen("start");
+    renderCategories();
+});
+
+$("btn-phoneme-back").addEventListener("click", () => {
+    state.phonemeGame = null;
+    showScreen("start");
+    renderCategories();
+});
+
+// ================================================================
+//  MORPHEME AWARENESS BUILDER
+// ================================================================
+
+function startMorphemeBuilder() {
+    const words = [...MORPHEME_DATA.words];
+    for (let i = words.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [words[i], words[j]] = [words[j], words[i]];
+    }
+    const picked = words.slice(0, Math.min(10, words.length));
+
+    state.morphemeGame = {
+        words: picked,
+        index: 0,
+        correct: 0,
+        total: picked.length,
+        builtParts: [],
+        results: [],
+    };
+
+    showScreen("morpheme");
+    $("morpheme-category-label").textContent = "Word Builder";
+    renderMorphemeChallenge();
+}
+
+function renderMorphemeChallenge() {
+    const mg = state.morphemeGame;
+    if (!mg || mg.index >= mg.words.length) {
+        showMorphemeResults();
+        return;
+    }
+
+    const wordData = mg.words[mg.index];
+    mg.builtParts = [];
+
+    $("morpheme-counter").textContent = `${mg.index + 1} / ${mg.total}`;
+    $("morpheme-score").textContent = mg.correct;
+    $("morpheme-progress-fill").style.width = `${(mg.index / mg.total) * 100}%`;
+
+    const clue = wordData.meanings.join(" + ");
+    $("morpheme-clue-text").textContent = `"${clue}"`;
+
+    $("morpheme-feedback").classList.add("hidden");
+    $("morpheme-built-word").classList.add("hidden");
+    $("morpheme-build-placeholder").classList.remove("hidden");
+    $("morpheme-build-zone").classList.remove("has-parts");
+
+    const buildZone = $("morpheme-build-zone");
+    buildZone.querySelectorAll(".morpheme-chip").forEach(c => c.remove());
+
+    const correctParts = wordData.parts.map((p, i) => ({
+        text: p, type: wordData.types[i], isCorrect: true,
+    }));
+
+    const distractors = [];
+    const allPrefixes = Object.keys(MORPHEME_DATA.prefixes).filter(p => !wordData.parts.includes(p));
+    const allSuffixes = Object.keys(MORPHEME_DATA.suffixes).filter(s => !wordData.parts.includes(s));
+
+    for (let i = allPrefixes.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [allPrefixes[i], allPrefixes[j]] = [allPrefixes[j], allPrefixes[i]];
+    }
+    for (let i = allSuffixes.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [allSuffixes[i], allSuffixes[j]] = [allSuffixes[j], allSuffixes[i]];
+    }
+
+    if (allPrefixes.length > 0) distractors.push({ text: allPrefixes[0], type: "prefix", isCorrect: false });
+    if (allSuffixes.length > 0) distractors.push({ text: allSuffixes[0], type: "suffix", isCorrect: false });
+    if (allSuffixes.length > 1) distractors.push({ text: allSuffixes[1], type: "suffix", isCorrect: false });
+
+    const allParts = [...correctParts, ...distractors];
+    for (let i = allParts.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [allParts[i], allParts[j]] = [allParts[j], allParts[i]];
+    }
+
+    const partsContainer = $("morpheme-parts");
+    partsContainer.innerHTML = "";
+    allParts.forEach((part, idx) => {
+        const chip = document.createElement("button");
+        const typeClass = part.type === "prefix" ? "prefix" : part.type === "suffix" ? "suffix" : "root";
+        chip.className = `morpheme-chip ${typeClass}`;
+        if (!part.isCorrect) chip.classList.add("distractor");
+        chip.dataset.partIdx = idx;
+        chip.dataset.text = part.text;
+        chip.dataset.type = part.type;
+        chip.innerHTML = `${part.text}<span class="morpheme-chip-label">${part.type}</span>`;
+        chip.addEventListener("click", () => addMorphemePart(chip, part));
+        partsContainer.appendChild(chip);
+    });
+
+    setTimeout(() => speakNatural(`Build the word that means: ${clue}`), 400);
+}
+
+function addMorphemePart(chipEl, part) {
+    const mg = state.morphemeGame;
+    if (!mg) return;
+    Sound.click();
+    chipEl.classList.add("used");
+    mg.builtParts.push({ text: part.text, type: part.type, chipEl });
+    updateMorphemeBuildZone();
+}
+
+function removeMorphemePart(index) {
+    const mg = state.morphemeGame;
+    if (!mg) return;
+    Sound.click();
+    const removed = mg.builtParts.splice(index, 1)[0];
+    if (removed && removed.chipEl) removed.chipEl.classList.remove("used");
+    updateMorphemeBuildZone();
+}
+
+function updateMorphemeBuildZone() {
+    const mg = state.morphemeGame;
+    const buildZone = $("morpheme-build-zone");
+    buildZone.querySelectorAll(".morpheme-chip").forEach(c => c.remove());
+
+    if (mg.builtParts.length === 0) {
+        $("morpheme-build-placeholder").classList.remove("hidden");
+        buildZone.classList.remove("has-parts");
+        $("morpheme-built-word").classList.add("hidden");
+    } else {
+        $("morpheme-build-placeholder").classList.add("hidden");
+        buildZone.classList.add("has-parts");
+
+        mg.builtParts.forEach((part, idx) => {
+            const chip = document.createElement("button");
+            const typeClass = part.type === "prefix" ? "prefix" : part.type === "suffix" ? "suffix" : "root";
+            chip.className = `morpheme-chip ${typeClass} in-zone`;
+            chip.innerHTML = `${part.text}<span class="morpheme-chip-label">${part.type}</span>`;
+            chip.addEventListener("click", () => removeMorphemePart(idx));
+            buildZone.appendChild(chip);
+        });
+
+        const combined = mg.builtParts.map(p => p.text).join("");
+        $("morpheme-built-word").textContent = combined;
+        $("morpheme-built-word").classList.remove("hidden");
+    }
+}
+
+function checkMorphemeBuild() {
+    const mg = state.morphemeGame;
+    if (!mg || mg.builtParts.length === 0) return;
+
+    const wordData = mg.words[mg.index];
+    const builtWord = mg.builtParts.map(p => p.text).join("");
+    const isCorrect = builtWord.toLowerCase() === wordData.word.toLowerCase();
+
+    if (isCorrect) { mg.correct++; Sound.correct(); }
+    else { Sound.incorrect(); }
+
+    mg.results.push({ word: wordData.word, built: builtWord, isCorrect });
+
+    $("morpheme-feedback").classList.remove("hidden");
+    $("morpheme-feedback-icon").textContent = isCorrect ? "\u2705" : "\u274C";
+    $("morpheme-feedback-text").textContent = isCorrect
+        ? `Correct! "${wordData.word}" is right!`
+        : `Not quite. The answer is "${wordData.word}".`;
+
+    const breakdownHTML = wordData.parts.map((part, i) => {
+        const typeClass = wordData.types[i] === "prefix" ? "prefix-part"
+            : wordData.types[i] === "suffix" ? "suffix-part" : "root-part";
+        return `<div class="morpheme-meaning-part ${typeClass}">
+            <span class="morpheme-meaning-word">${part}</span>
+            <span class="morpheme-meaning-def">${wordData.meanings[i]}</span>
+        </div>`;
+    }).join('<span class="morpheme-meaning-plus">+</span>');
+
+    $("morpheme-meaning-breakdown").innerHTML = breakdownHTML
+        + `<span class="morpheme-meaning-equals">=</span>`
+        + `<span class="morpheme-meaning-result">${wordData.word}</span>`;
+
+    $("morpheme-score").textContent = mg.correct;
+    $("morpheme-parts").querySelectorAll(".morpheme-chip").forEach(c => c.classList.add("used"));
+
+    setTimeout(() => {
+        speak(wordData.word, 0.8);
+        setTimeout(() => speakNatural(`${wordData.word} means ${wordData.meanings.join(" plus ")}`), 800);
+    }, 500);
+}
+
+$("btn-morpheme-check").addEventListener("click", checkMorphemeBuild);
+
+$("btn-morpheme-clear").addEventListener("click", () => {
+    const mg = state.morphemeGame;
+    if (!mg) return;
+    mg.builtParts.forEach(part => { if (part.chipEl) part.chipEl.classList.remove("used"); });
+    mg.builtParts = [];
+    updateMorphemeBuildZone();
+});
+
+$("btn-morpheme-next").addEventListener("click", () => {
+    const mg = state.morphemeGame;
+    if (!mg) return;
+    mg.index++;
+    renderMorphemeChallenge();
+});
+
+function showMorphemeResults() {
+    const mg = state.morphemeGame;
+    if (!mg) return;
+
+    $("morpheme-progress-fill").style.width = "100%";
+    SRS.saveMorphemeResult(mg.correct, mg.total);
+    SRS.recordDailyPractice();
+    updateStreakDisplay();
+
+    const pct = Math.round((mg.correct / mg.total) * 100);
+    let emoji, msg;
+    if (pct === 100) { emoji = "\uD83C\uDF1F"; msg = "Perfect Builder!"; Sound.badgeUnlock(); }
+    else if (pct >= 80) { emoji = "\uD83C\uDF89"; msg = "Great Building!"; Sound.levelUp(); }
+    else if (pct >= 60) { emoji = "\uD83D\uDCAA"; msg = "Good Effort!"; Sound.correct(); }
+    else { emoji = "\uD83E\uDDF1"; msg = "Keep Building!"; }
+
+    showScreen("morphemeResult");
+    $("morpheme-result-title").textContent = `${emoji} ${msg}`;
+    $("morpheme-result-stats").innerHTML = `
+        <div class="stat"><span class="stat-value">${mg.correct}</span><span class="stat-label">Correct</span></div>
+        <div class="stat"><span class="stat-value">${mg.total}</span><span class="stat-label">Total</span></div>
+        <div class="stat"><span class="stat-value">${pct}%</span><span class="stat-label">Accuracy</span></div>
+    `;
+}
+
+$("btn-morpheme-replay").addEventListener("click", () => startMorphemeBuilder());
+
+$("btn-morpheme-menu").addEventListener("click", () => {
+    state.morphemeGame = null;
+    showScreen("start");
+    renderCategories();
+});
+
+$("btn-morpheme-back").addEventListener("click", () => {
+    state.morphemeGame = null;
+    showScreen("start");
+    renderCategories();
+});
+
+// ================================================================
+//  STREAK CALENDAR
+// ================================================================
+function updateStreakDisplay() {
+    const el = $("streak-fire");
+    if (!el) return;
+    const streak = SRS.getDailyStreak();
+    el.textContent = `\uD83D\uDD25 ${streak}`;
+    el.title = `${streak}-day practice streak`;
+}
+
+function showStreakCalendar() {
+    const modal = $("streak-overlay");
+    if (!modal) return;
+    modal.classList.remove("hidden");
+    renderStreakCalendar();
+}
+
+function renderStreakCalendar() {
+    const grid = $("streak-calendar-grid");
+    if (!grid) return;
+
+    const history = SRS.getPracticeHistory(30);
+    const historySet = new Set(history);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    grid.innerHTML = "";
+
+    ["S", "M", "T", "W", "T", "F", "S"].forEach(d => {
+        const label = document.createElement("div");
+        label.className = "streak-day-label";
+        label.textContent = d;
+        grid.appendChild(label);
+    });
+
+    const startDate = new Date(today);
+    startDate.setDate(startDate.getDate() - 29);
+
+    // Pad to start on Sunday
+    for (let i = 0; i < startDate.getDay(); i++) {
+        const empty = document.createElement("div");
+        empty.className = "streak-day empty";
+        grid.appendChild(empty);
+    }
+
+    for (let i = 0; i < 30; i++) {
+        const date = new Date(startDate);
+        date.setDate(date.getDate() + i);
+        const dateStr = date.toISOString().split("T")[0];
+        const isToday = dateStr === today.toISOString().split("T")[0];
+        const practiced = historySet.has(dateStr);
+
+        const cell = document.createElement("div");
+        cell.className = `streak-day ${practiced ? "practiced" : ""} ${isToday ? "today" : ""}`;
+        cell.textContent = date.getDate();
+        grid.appendChild(cell);
+    }
+
+    const streak = SRS.getDailyStreak();
+    const longest = SRS.getLongestStreak();
+    const streakStats = $("streak-stats");
+    if (streakStats) {
+        streakStats.innerHTML = `
+            <div class="result-stat"><span class="result-stat-value">\uD83D\uDD25 ${streak}</span><span class="result-stat-label">Current Streak</span></div>
+            <div class="result-stat"><span class="result-stat-value">\uD83C\uDFC6 ${longest}</span><span class="result-stat-label">Longest Streak</span></div>
+            <div class="result-stat"><span class="result-stat-value">${history.length}</span><span class="result-stat-label">Days This Month</span></div>
+        `;
+    }
+}
+
+if ($("streak-fire")) $("streak-fire").addEventListener("click", showStreakCalendar);
+if ($("btn-streak-close")) $("btn-streak-close").addEventListener("click", () => {
+    $("streak-overlay").classList.add("hidden");
+});
+
+// ================================================================
+//  READING COMPREHENSION
+// ================================================================
+
+function startComprehension(passage) {
+    if (!passage || !passage.questions || passage.questions.length === 0) {
+        alert("No comprehension questions available for this passage yet.");
+        return;
+    }
+    state.comprehension = {
+        passage,
+        questions: [...passage.questions],
+        index: 0,
+        correct: 0,
+        total: passage.questions.length,
+        results: [],
+        answered: false,
+    };
+    showScreen("comprehension");
+    loadComprehensionQuestion();
+}
+
+function loadComprehensionQuestion() {
+    const comp = state.comprehension;
+    if (!comp) return;
+    const q = comp.questions[comp.index];
+    comp.answered = false;
+
+    $("comp-counter").textContent = `${comp.index + 1} / ${comp.total}`;
+
+    $("comp-question-text").textContent = q.q;
+
+    // Render choices
+    const choicesEl = $("comp-choices");
+    choicesEl.innerHTML = "";
+    const labels = ["A", "B", "C", "D"];
+    q.choices.forEach((choice, i) => {
+        const btn = document.createElement("button");
+        btn.className = "comp-choice-btn";
+        btn.innerHTML = `<span class="comp-choice-label">${labels[i]}</span><span class="comp-choice-text">${choice}</span>`;
+        btn.addEventListener("click", () => selectComprehensionAnswer(i));
+        choicesEl.appendChild(btn);
+    });
+
+    // Hide feedback and next
+    $("comp-feedback").classList.add("hidden");
+    $("btn-comp-next").classList.add("hidden");
+}
+
+function selectComprehensionAnswer(choiceIndex) {
+    const comp = state.comprehension;
+    if (!comp || comp.answered) return;
+    comp.answered = true;
+
+    const q = comp.questions[comp.index];
+    const correct = choiceIndex === q.answer;
+
+    if (correct) comp.correct++;
+    comp.results.push({ question: q.q, correct, chosen: q.choices[choiceIndex], correctAnswer: q.choices[q.answer] });
+
+    // Highlight choices
+    const buttons = $("comp-choices").querySelectorAll(".comp-choice-btn");
+    buttons.forEach((btn, i) => {
+        btn.classList.add("disabled");
+        if (i === q.answer) btn.classList.add("correct");
+        if (i === choiceIndex && !correct) btn.classList.add("incorrect");
+    });
+
+    // Show feedback
+    const fb = $("comp-feedback");
+    fb.classList.remove("hidden");
+    if (correct) {
+        fb.textContent = "That's right! Great job! ✅";
+        fb.className = "comp-feedback correct";
+    } else {
+        fb.textContent = `Not quite. The answer is: ${q.choices[q.answer]}`;
+        fb.className = "comp-feedback incorrect";
+    }
+
+    // Show next button
+    const nextBtn = $("btn-comp-next");
+    nextBtn.classList.remove("hidden");
+    nextBtn.textContent = comp.index < comp.total - 1 ? "Next Question →" : "See Results";
+
+    // Speak feedback
+    if (correct) speak("That's right!");
+    else speak(`The correct answer is ${q.choices[q.answer]}`);
+}
+
+function nextComprehensionQuestion() {
+    const comp = state.comprehension;
+    if (!comp) return;
+    comp.index++;
+    if (comp.index >= comp.total) {
+        showComprehensionResults();
+    } else {
+        loadComprehensionQuestion();
+    }
+}
+
+function showComprehensionResults() {
+    const comp = state.comprehension;
+    if (!comp) return;
+    const pct = Math.round((comp.correct / comp.total) * 100);
+
+    showScreen("comprehensionResult");
+
+    // Title
+    let emoji = "🧠";
+    if (pct === 100) emoji = "🌟";
+    else if (pct >= 67) emoji = "👍";
+    $("comp-result-title").textContent = `${emoji} ${pct}% Comprehension`;
+
+    // Stats
+    $("comp-result-stats").innerHTML = `
+        <div class="result-stat"><span class="result-stat-value">${comp.correct}</span><span class="result-stat-label">Correct</span></div>
+        <div class="result-stat"><span class="result-stat-value">${comp.total}</span><span class="result-stat-label">Questions</span></div>
+        <div class="result-stat"><span class="result-stat-value">${pct}%</span><span class="result-stat-label">Score</span></div>
+    `;
+
+    // Review wrong answers
+    const reviewList = $("comp-review-list");
+    const wrong = comp.results.filter(r => !r.correct);
+    if (wrong.length > 0) {
+        reviewList.innerHTML = `<h3 class="comp-review-heading">Let's Review</h3>` +
+            wrong.map(r => `
+                <div class="comp-review-item">
+                    <p class="comp-review-q">${r.question}</p>
+                    <p class="comp-review-wrong">Your answer: ${r.chosen}</p>
+                    <p class="comp-review-right">Correct answer: ${r.correctAnswer}</p>
+                </div>
+            `).join("");
+    } else {
+        reviewList.innerHTML = `<p class="comp-review-perfect">Perfect score! You understood everything! 🎉</p>`;
+    }
+
+    // Save stats
+    SRS.saveComprehensionResult(comp.passage.id, comp.correct, comp.total);
+    SRS.recordDailyPractice();
+    updateStreakDisplay();
+
+    speak(`You got ${comp.correct} out of ${comp.total} correct. ${pct === 100 ? "Perfect score!" : "Good effort!"}`);
+}
+
+// Comprehension event listeners
+if ($("btn-comprehension-check")) {
+    $("btn-comprehension-check").addEventListener("click", () => {
+        if (state.currentPassage && state.currentPassage.questions) {
+            startComprehension(state.currentPassage);
+        } else {
+            alert("No comprehension questions available for this passage yet.");
+        }
+    });
+}
+if ($("btn-comp-next")) $("btn-comp-next").addEventListener("click", nextComprehensionQuestion);
+if ($("btn-comp-back")) $("btn-comp-back").addEventListener("click", () => showScreen("readResult"));
+if ($("btn-comp-retry")) $("btn-comp-retry").addEventListener("click", () => {
+    if (state.comprehension && state.comprehension.passage) {
+        startComprehension(state.comprehension.passage);
+    }
+});
+if ($("btn-comp-done")) $("btn-comp-done").addEventListener("click", () => {
+    showScreen("start");
+    renderCategories();
+});
+
+// ================================================================
 //  INIT
 // ================================================================
 loadPersistentStats();
@@ -4665,3 +5954,4 @@ renderCategories();
 updateStats();
 updateReviewBanner();
 loadAiRecommendation();
+updateStreakDisplay();

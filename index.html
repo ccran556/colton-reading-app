@@ -31,6 +31,7 @@
                         <span class="stat-label">Level</span>
                     </div>
                 </div>
+                <button class="btn btn-streak-fire" id="streak-fire" aria-label="Practice Streak" title="Practice Streak">🔥 0</button>
                 <button class="btn btn-settings" id="btn-badges" aria-label="Badges">🏆</button>
                 <button class="btn btn-settings" id="btn-settings" aria-label="Settings">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
@@ -48,6 +49,10 @@
                     <button class="mode-tab" data-mode="scramble">Scramble</button>
                     <button class="mode-tab" data-mode="lessons">Lessons</button>
                     <button class="mode-tab" data-mode="read">Read It</button>
+                    <button class="mode-tab" data-mode="phoneme">Sounds</button>
+                    <button class="mode-tab" data-mode="morpheme">Build</button>
+                    <button class="mode-tab" data-mode="dictation">Dictation</button>
+                    <button class="mode-tab" data-mode="speed">Speed Drill</button>
                 </div>
 
                 <!-- AI Recommendation -->
@@ -558,10 +563,41 @@
                     </div>
 
                     <div class="result-actions">
-                        <button class="btn btn-primary" id="btn-read-review">📖 Let's Review These Words</button>
-                        <button class="btn btn-primary" id="btn-read-practice">Practice These Words</button>
+                        <button class="btn btn-primary" id="btn-comprehension-check">🧠 Comprehension Check</button>
+                        <button class="btn btn-primary" id="btn-read-review">📖 Review These Words</button>
                         <button class="btn btn-primary" id="btn-read-again">Read Another</button>
-                        <button class="btn btn-back" id="btn-read-categories">All Passages</button>
+                        <button class="btn btn-back" id="btn-read-categories">Back to Passages</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Comprehension Quiz Screen -->
+            <div id="comprehension-screen" class="screen">
+                <div class="game-top">
+                    <button class="btn btn-back" id="btn-comp-back" aria-label="Go back">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                    </button>
+                    <div class="category-label">🧠 Comprehension Check</div>
+                    <div class="word-counter" id="comp-counter">1 / 3</div>
+                </div>
+
+                <div class="comp-question-card" id="comp-question-card">
+                    <p class="comp-question-text" id="comp-question-text"></p>
+                    <div class="comp-choices" id="comp-choices"></div>
+                    <div class="comp-feedback hidden" id="comp-feedback"></div>
+                    <button class="btn btn-primary comp-next-btn hidden" id="btn-comp-next">Next Question →</button>
+                </div>
+            </div>
+
+            <!-- Comprehension Result Screen -->
+            <div id="comprehension-result-screen" class="screen">
+                <div class="result-card">
+                    <h2 class="result-title" id="comp-result-title"></h2>
+                    <div class="result-stats" id="comp-result-stats"></div>
+                    <div class="comp-review-list" id="comp-review-list"></div>
+                    <div class="result-actions">
+                        <button class="btn btn-primary" id="btn-comp-retry">Try Again</button>
+                        <button class="btn btn-back" id="btn-comp-done">Back to Passages</button>
                     </div>
                 </div>
             </div>
@@ -596,6 +632,236 @@
                 <div class="review-nav">
                     <button class="btn btn-back" id="btn-review-prev">← Previous</button>
                     <button class="btn btn-primary" id="btn-review-next">Next Word →</button>
+                </div>
+            </div>
+
+            <!-- Phoneme Game Screen -->
+            <div id="phoneme-screen" class="screen">
+                <div class="game-top">
+                    <button class="btn btn-back" id="btn-phoneme-back" aria-label="Go back">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                    </button>
+                    <div class="category-label" id="phoneme-category-label">Phoneme Game</div>
+                    <div class="word-counter" id="phoneme-counter">0 / 0</div>
+                </div>
+
+                <div class="phoneme-progress-bar">
+                    <div class="phoneme-progress-fill" id="phoneme-progress-fill"></div>
+                </div>
+
+                <div class="phoneme-score-display" id="phoneme-score-display">
+                    Score: <span id="phoneme-score">0</span>
+                </div>
+
+                <div class="phoneme-prompt" id="phoneme-prompt">
+                    <p class="phoneme-prompt-text">Listen to the sound</p>
+                    <button class="btn phoneme-play-btn" id="btn-phoneme-play" aria-label="Play sound">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="currentColor"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
+                    </button>
+                    <p class="phoneme-question" id="phoneme-question">Which spelling makes this sound?</p>
+                </div>
+
+                <div class="phoneme-choices" id="phoneme-choices"></div>
+
+                <div class="phoneme-feedback hidden" id="phoneme-feedback">
+                    <div class="phoneme-feedback-icon" id="phoneme-feedback-icon"></div>
+                    <div class="phoneme-feedback-text" id="phoneme-feedback-text"></div>
+                    <div class="phoneme-feedback-examples" id="phoneme-feedback-examples"></div>
+                    <button class="btn btn-primary" id="btn-phoneme-next">Next &rarr;</button>
+                </div>
+            </div>
+
+            <!-- Phoneme Results Screen -->
+            <div id="phoneme-result-screen" class="screen">
+                <div class="result-card">
+                    <h2 class="result-title" id="phoneme-result-title"></h2>
+                    <div class="result-stats" id="phoneme-result-stats"></div>
+                    <div class="result-actions">
+                        <button class="btn btn-primary" id="btn-phoneme-replay">Play Again</button>
+                        <button class="btn btn-back" id="btn-phoneme-menu">Back to Menu</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Morpheme Builder Screen -->
+            <div id="morpheme-screen" class="screen">
+                <div class="game-top">
+                    <button class="btn btn-back" id="btn-morpheme-back" aria-label="Go back">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                    </button>
+                    <div class="category-label" id="morpheme-category-label">Word Builder</div>
+                    <div class="word-counter" id="morpheme-counter">0 / 0</div>
+                </div>
+
+                <div class="morpheme-progress-bar">
+                    <div class="morpheme-progress-fill" id="morpheme-progress-fill"></div>
+                </div>
+
+                <div class="morpheme-score-display" id="morpheme-score-display">
+                    Score: <span id="morpheme-score">0</span>
+                </div>
+
+                <div class="morpheme-clue" id="morpheme-clue">
+                    <p class="morpheme-clue-label">Build the word that means:</p>
+                    <p class="morpheme-clue-text" id="morpheme-clue-text"></p>
+                </div>
+
+                <div class="morpheme-build-zone" id="morpheme-build-zone">
+                    <p class="morpheme-build-placeholder" id="morpheme-build-placeholder">Tap parts below to build the word</p>
+                </div>
+
+                <div class="morpheme-built-word hidden" id="morpheme-built-word"></div>
+
+                <div class="morpheme-parts" id="morpheme-parts"></div>
+
+                <div class="morpheme-actions">
+                    <button class="btn btn-clear" id="btn-morpheme-clear">Clear</button>
+                    <button class="btn btn-check" id="btn-morpheme-check">Check</button>
+                </div>
+
+                <div class="morpheme-feedback hidden" id="morpheme-feedback">
+                    <div class="morpheme-feedback-icon" id="morpheme-feedback-icon"></div>
+                    <div class="morpheme-feedback-text" id="morpheme-feedback-text"></div>
+                    <div class="morpheme-meaning-breakdown" id="morpheme-meaning-breakdown"></div>
+                    <button class="btn btn-primary" id="btn-morpheme-next">Next &rarr;</button>
+                </div>
+            </div>
+
+            <!-- Morpheme Results Screen -->
+            <div id="morpheme-result-screen" class="screen">
+                <div class="result-card">
+                    <h2 class="result-title" id="morpheme-result-title"></h2>
+                    <div class="result-stats" id="morpheme-result-stats"></div>
+                    <div class="result-actions">
+                        <button class="btn btn-primary" id="btn-morpheme-replay">Play Again</button>
+                        <button class="btn btn-back" id="btn-morpheme-menu">Back to Menu</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Speed Drill: Level Select -->
+            <div id="speed-level-screen" class="screen">
+                <div class="game-top">
+                    <button class="btn btn-back" id="btn-speed-level-back" aria-label="Go back">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                    </button>
+                    <div class="category-label">&#9889; Speed Drill</div>
+                </div>
+                <h2 class="screen-title">Choose a Level</h2>
+                <div class="speed-level-grid" id="speed-level-grid"></div>
+            </div>
+
+            <!-- Speed Drill: Active Drill -->
+            <div id="speed-drill-screen" class="screen">
+                <div class="game-top">
+                    <button class="btn btn-back" id="btn-speed-drill-back" aria-label="Go back">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                    </button>
+                    <div class="category-label" id="speed-drill-label">&#9889; Speed Drill</div>
+                    <div class="speed-timer" id="speed-timer">0.0s</div>
+                </div>
+
+                <div class="speed-progress" id="speed-progress">Word 1 of 20</div>
+
+                <div class="speed-word-display">
+                    <div class="speed-word" id="speed-word"></div>
+                </div>
+
+                <div class="speed-buttons">
+                    <button class="btn speed-btn-know" id="btn-speed-know">I Know It!</button>
+                    <button class="btn speed-btn-help" id="btn-speed-help">Need Help</button>
+                </div>
+            </div>
+
+            <!-- Speed Drill: Results -->
+            <div id="speed-result-screen" class="screen">
+                <div class="result-card">
+                    <h2 class="result-title" id="speed-result-title">Speed Drill Complete!</h2>
+                    <div class="result-stats" id="speed-result-stats"></div>
+
+                    <div class="speed-personal-best" id="speed-personal-best"></div>
+
+                    <div class="speed-helped-words hidden" id="speed-helped-words">
+                        <h3 class="speed-helped-title">Words That Needed Help</h3>
+                        <div class="speed-helped-list" id="speed-helped-list"></div>
+                    </div>
+
+                    <div class="result-actions">
+                        <button class="btn btn-primary" id="btn-speed-retry">Try Again</button>
+                        <button class="btn btn-back" id="btn-speed-levels">All Levels</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dictation Level Select Screen -->
+            <div id="dictation-select-screen" class="screen">
+                <div class="game-top">
+                    <button class="btn btn-back" id="btn-dictation-select-back" aria-label="Go back">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                    </button>
+                    <div class="category-label">&#x1f4dd; Dictation Mode</div>
+                </div>
+                <h2 class="screen-title">Choose a Level</h2>
+                <div class="category-grid" id="dictation-level-grid"></div>
+            </div>
+
+            <!-- Dictation Active Screen -->
+            <div id="dictation-screen" class="screen">
+                <div class="game-top">
+                    <button class="btn btn-back" id="btn-dictation-back" aria-label="Go back">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                    </button>
+                    <div class="category-label" id="dictation-level-label"></div>
+                    <div class="word-counter" id="dictation-counter">1 / 8</div>
+                </div>
+
+                <div class="dictation-listen-area">
+                    <p class="dictation-instruction">Listen carefully, then type what you hear.</p>
+                    <div class="dictation-buttons">
+                        <button class="btn btn-hear btn-lg" id="btn-dictation-listen" aria-label="Listen to sentence">
+                            <span class="dictation-btn-icon">&#x1f50a;</span>
+                            <span>Listen</span>
+                        </button>
+                        <button class="btn btn-hear" id="btn-dictation-repeat" aria-label="Repeat sentence">
+                            <span class="dictation-btn-icon">&#x1f501;</span>
+                            <span>Repeat</span>
+                        </button>
+                        <button class="btn btn-hear" id="btn-dictation-slow" aria-label="Play slowly">
+                            <span class="dictation-btn-icon">&#x1f422;</span>
+                            <span>Slow</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="dictation-input-area">
+                    <textarea id="dictation-input" class="dictation-text-input" rows="3" placeholder="Type the sentence here..." autocomplete="off" autocapitalize="off" spellcheck="false"></textarea>
+                    <button class="btn btn-check btn-lg" id="btn-dictation-check">Check My Answer</button>
+                </div>
+
+                <!-- Word-by-word feedback -->
+                <div class="dictation-feedback hidden" id="dictation-feedback"></div>
+
+                <!-- Next button -->
+                <div class="dictation-next hidden" id="dictation-next">
+                    <button class="btn btn-primary" id="btn-dictation-next">Next Sentence &rarr;</button>
+                </div>
+            </div>
+
+            <!-- Dictation Results Screen -->
+            <div id="dictation-result-screen" class="screen">
+                <div class="result-card">
+                    <h2 class="result-title" id="dictation-result-title"></h2>
+                    <div class="result-stats" id="dictation-result-stats"></div>
+
+                    <div class="dictation-missed hidden" id="dictation-missed">
+                        <h3 class="dictation-missed-title">Words to Practice</h3>
+                        <div class="dictation-missed-words" id="dictation-missed-words"></div>
+                    </div>
+
+                    <div class="result-actions">
+                        <button class="btn btn-primary" id="btn-dictation-again">Try Again</button>
+                        <button class="btn btn-back" id="btn-dictation-levels">All Levels</button>
+                    </div>
                 </div>
             </div>
 
@@ -688,15 +954,39 @@
                     <button class="btn btn-primary btn-sm" id="btn-open-dashboard">📊 View Dashboard</button>
                 </div>
 
-                <!-- Reset -->
+                <!-- Reset (Parent Gate) -->
                 <div class="settings-section">
                     <h3 class="settings-section-title">Data</h3>
                     <p class="settings-desc">Reset your learning profile or start completely fresh.</p>
-                    <div class="settings-reset-buttons">
+                    <div id="parent-gate" class="parent-gate">
+                        <p class="settings-desc" style="font-style:italic; margin-bottom: 0.5rem;">Parents only: solve to unlock reset options</p>
+                        <div class="settings-input-row">
+                            <label id="parent-gate-question" class="settings-label" style="white-space:nowrap;"></label>
+                            <input type="number" id="parent-gate-answer" class="settings-input" placeholder="?" style="width: 80px;" autocomplete="off">
+                            <button class="btn btn-primary btn-sm" id="btn-parent-gate-unlock">Unlock</button>
+                        </div>
+                    </div>
+                    <div class="settings-reset-buttons hidden" id="reset-buttons">
                         <button class="btn btn-clear btn-sm" id="btn-reset-profile">Reset Learning Profile</button>
                         <button class="btn btn-danger btn-sm" id="btn-reset-everything">Reset Everything — Start Fresh</button>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Streak Calendar Modal -->
+    <div class="modal-overlay hidden" id="streak-overlay">
+        <div class="modal" id="streak-modal">
+            <div class="modal-header">
+                <h2 class="modal-title">🔥 Practice Streak</h2>
+                <button class="btn btn-back modal-close" id="btn-streak-close" aria-label="Close">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="streak-stats" id="streak-stats"></div>
+                <div class="streak-calendar-grid" id="streak-calendar-grid"></div>
             </div>
         </div>
     </div>

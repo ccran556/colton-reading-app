@@ -225,3 +225,197 @@ const WORD_LISTS = {
         ],
     },
 };
+
+// Sight words for Speed Drill mode — high-frequency words by level
+const SIGHT_WORDS = {
+    1: {
+        label: "Level 1",
+        icon: "🟢",
+        color: "#00cec9",
+        description: "Common everyday words",
+        words: [
+            "the", "and", "is", "it", "to", "in", "he", "was", "for", "on",
+            "are", "you", "with", "his", "they", "at", "be", "this", "from", "have"
+        ],
+    },
+    2: {
+        label: "Level 2",
+        icon: "🔵",
+        color: "#0984e3",
+        description: "Building up to trickier words",
+        words: [
+            "said", "each", "which", "their", "will", "other", "about", "out", "many", "then",
+            "them", "these", "would", "make", "like", "him", "into", "time", "has", "look"
+        ],
+    },
+    3: {
+        label: "Level 3",
+        icon: "🟡",
+        color: "#feca57",
+        description: "Challenging sight words",
+        words: [
+            "because", "different", "through", "thought", "important", "between", "should", "before", "another", "enough",
+            "together", "something", "sometimes", "although", "beautiful", "knowledge", "necessary", "beginning", "receive", "believe"
+        ],
+    },
+};
+
+// ===== Phoneme-Grapheme Mapping Data =====
+// Organized by category: Digraphs, Blends, Vowel Teams
+// Each entry: sound, displayName, spellings array, examples object keyed by spelling
+
+const PHONEME_DATA = {
+    "Digraphs": [
+        { sound: "sh", displayName: "The SH sound", spellings: ["sh"], examples: { "sh": ["ship", "fish", "wish"] } },
+        { sound: "ch", displayName: "The CH sound", spellings: ["ch"], examples: { "ch": ["chip", "much", "lunch"] } },
+        { sound: "th", displayName: "The TH sound", spellings: ["th"], examples: { "th": ["thin", "math", "three"] } },
+        { sound: "wh", displayName: "The WH sound", spellings: ["wh"], examples: { "wh": ["when", "whale", "white"] } },
+        { sound: "ph", displayName: "The PH sound", spellings: ["ph"], examples: { "ph": ["phone", "graph", "photo"] } },
+        { sound: "ck", displayName: "The CK sound", spellings: ["ck"], examples: { "ck": ["back", "stick", "clock"] } },
+        { sound: "ng", displayName: "The NG sound", spellings: ["ng"], examples: { "ng": ["ring", "song", "long"] } },
+    ],
+    "Blends": [
+        { sound: "bl", displayName: "The BL blend", spellings: ["bl"], examples: { "bl": ["black", "blue"] } },
+        { sound: "cr", displayName: "The CR blend", spellings: ["cr"], examples: { "cr": ["cross", "cream"] } },
+        { sound: "st", displayName: "The ST blend", spellings: ["st"], examples: { "st": ["star", "stop"] } },
+        { sound: "tr", displayName: "The TR blend", spellings: ["tr"], examples: { "tr": ["tree", "trick"] } },
+        { sound: "sp", displayName: "The SP blend", spellings: ["sp"], examples: { "sp": ["spin", "spot"] } },
+        { sound: "fl", displayName: "The FL blend", spellings: ["fl"], examples: { "fl": ["flag", "fly"] } },
+        { sound: "gr", displayName: "The GR blend", spellings: ["gr"], examples: { "gr": ["green", "grip"] } },
+        { sound: "br", displayName: "The BR blend", spellings: ["br"], examples: { "br": ["bring", "brave"] } },
+        { sound: "pl", displayName: "The PL blend", spellings: ["pl"], examples: { "pl": ["play", "plan"] } },
+        { sound: "sn", displayName: "The SN blend", spellings: ["sn"], examples: { "sn": ["snow", "snap"] } },
+        { sound: "sw", displayName: "The SW blend", spellings: ["sw"], examples: { "sw": ["swim", "sweet"] } },
+        { sound: "str", displayName: "The STR blend", spellings: ["str"], examples: { "str": ["street", "strong"] } },
+    ],
+    "Vowel Teams": [
+        { sound: "long a", displayName: "The long A sound", spellings: ["ai", "ay"], examples: { "ai": ["rain", "train", "wait"], "ay": ["play", "day", "say"] } },
+        { sound: "long e", displayName: "The long E sound", spellings: ["ee", "ea"], examples: { "ee": ["tree", "feet", "sleep"], "ea": ["read", "sea", "beach"] } },
+        { sound: "long o", displayName: "The long O sound", spellings: ["oa", "ow"], examples: { "oa": ["boat", "road", "coat"], "ow": ["snow", "flow", "grow"] } },
+        { sound: "oo", displayName: "The OO sound", spellings: ["oo"], examples: { "oo": ["moon", "food", "soon"] } },
+        { sound: "ow", displayName: "The OW/OU sound", spellings: ["ou", "ow"], examples: { "ou": ["out", "house", "loud"], "ow": ["cow", "town", "down"] } },
+        { sound: "oy", displayName: "The OY/OI sound", spellings: ["oi", "oy"], examples: { "oi": ["oil", "coin", "join"], "oy": ["boy", "toy", "joy"] } },
+    ],
+};
+
+// ===== Morpheme Awareness Builder Data =====
+// Prefixes, suffixes, and buildable words with meaning breakdowns
+
+const MORPHEME_DATA = {
+    prefixes: {
+        "un": { meaning: "not", color: "#3b82f6" },
+        "re": { meaning: "again", color: "#3b82f6" },
+        "pre": { meaning: "before", color: "#3b82f6" },
+        "dis": { meaning: "opposite", color: "#3b82f6" },
+        "mis": { meaning: "wrong", color: "#3b82f6" },
+    },
+    suffixes: {
+        "ing": { meaning: "doing", color: "#22c55e" },
+        "ed": { meaning: "past", color: "#22c55e" },
+        "er": { meaning: "one who / more", color: "#22c55e" },
+        "est": { meaning: "most", color: "#22c55e" },
+        "ful": { meaning: "full of", color: "#22c55e" },
+        "less": { meaning: "without", color: "#22c55e" },
+        "ness": { meaning: "state of", color: "#22c55e" },
+        "able": { meaning: "can be", color: "#22c55e" },
+        "tion": { meaning: "act of", color: "#22c55e" },
+        "ment": { meaning: "result of", color: "#22c55e" },
+    },
+    words: [
+        { parts: ["un", "kind"], word: "unkind", types: ["prefix", "root"], meanings: ["not", "kind"] },
+        { parts: ["re", "play"], word: "replay", types: ["prefix", "root"], meanings: ["again", "play"] },
+        { parts: ["re", "build"], word: "rebuild", types: ["prefix", "root"], meanings: ["again", "build"] },
+        { parts: ["un", "fair"], word: "unfair", types: ["prefix", "root"], meanings: ["not", "fair"] },
+        { parts: ["pre", "heat"], word: "preheat", types: ["prefix", "root"], meanings: ["before", "heat"] },
+        { parts: ["dis", "like"], word: "dislike", types: ["prefix", "root"], meanings: ["opposite", "like"] },
+        { parts: ["mis", "spell"], word: "misspell", types: ["prefix", "root"], meanings: ["wrong", "spell"] },
+        { parts: ["hope", "ful"], word: "hopeful", types: ["root", "suffix"], meanings: ["hope", "full of"] },
+        { parts: ["care", "less"], word: "careless", types: ["root", "suffix"], meanings: ["care", "without"] },
+        { parts: ["kind", "ness"], word: "kindness", types: ["root", "suffix"], meanings: ["kind", "state of"] },
+        { parts: ["teach", "er"], word: "teacher", types: ["root", "suffix"], meanings: ["teach", "one who"] },
+        { parts: ["play", "ing"], word: "playing", types: ["root", "suffix"], meanings: ["play", "doing"] },
+        { parts: ["tall", "est"], word: "tallest", types: ["root", "suffix"], meanings: ["tall", "most"] },
+        { parts: ["enjoy", "ment"], word: "enjoyment", types: ["root", "suffix"], meanings: ["enjoy", "result of"] },
+        { parts: ["wash", "able"], word: "washable", types: ["root", "suffix"], meanings: ["wash", "can be"] },
+        { parts: ["act", "tion"], word: "action", types: ["root", "suffix"], meanings: ["act", "act of"] },
+        { parts: ["re", "start", "ing"], word: "restarting", types: ["prefix", "root", "suffix"], meanings: ["again", "start", "doing"] },
+        { parts: ["un", "break", "able"], word: "unbreakable", types: ["prefix", "root", "suffix"], meanings: ["not", "break", "can be"] },
+        { parts: ["dis", "agree", "ment"], word: "disagreement", types: ["prefix", "root", "suffix"], meanings: ["opposite", "agree", "result of"] },
+        { parts: ["un", "help", "ful"], word: "unhelpful", types: ["prefix", "root", "suffix"], meanings: ["not", "help", "full of"] },
+        { parts: ["re", "use", "able"], word: "reusable", types: ["prefix", "root", "suffix"], meanings: ["again", "use", "can be"] },
+        { parts: ["pre", "pay", "ment"], word: "prepayment", types: ["prefix", "root", "suffix"], meanings: ["before", "pay", "result of"] },
+        { parts: ["mis", "lead", "ing"], word: "misleading", types: ["prefix", "root", "suffix"], meanings: ["wrong", "lead", "doing"] },
+        { parts: ["un", "friend", "ly"], word: "unfriendly", types: ["prefix", "root", "suffix"], meanings: ["not", "friend", "like"] },
+        { parts: ["care", "ful", "ly"], word: "carefully", types: ["root", "suffix", "suffix"], meanings: ["care", "full of", "in a way"] },
+    ],
+};
+
+// ===== Dictation Sentences =====
+// Orton-Gillingham dictation: hear a sentence, type it word by word.
+// 3 levels, 15 sentences each. Difficulty increases with each level.
+
+const DICTATION_SENTENCES = {
+    "Level 1": {
+        icon: "🟢",
+        color: "#00cec9",
+        sentences: [
+            "The cat is big.",
+            "She ran to the park.",
+            "He has a red ball.",
+            "I like to read books.",
+            "The dog sat on the rug.",
+            "We went to the store.",
+            "My mom made a cake.",
+            "The sun is very hot.",
+            "He can run so fast.",
+            "She has a new pet.",
+            "The fish swam in the pond.",
+            "I see a big tree.",
+            "We played in the yard.",
+            "The bird sang a song.",
+            "He gave me a hug.",
+        ],
+    },
+    "Level 2": {
+        icon: "🔵",
+        color: "#0984e3",
+        sentences: [
+            "The knight knew the right answer.",
+            "She could write a beautiful letter.",
+            "The phone rang during the night.",
+            "He caught the ball with one hand.",
+            "They bought a new house last week.",
+            "The bridge over the river was old.",
+            "She thought the science test was easy.",
+            "The whole class laughed at the joke.",
+            "He built a castle out of blocks.",
+            "The weather changed from warm to cold.",
+            "She found a strange shell on the beach.",
+            "The island was quiet and peaceful.",
+            "He knew the answer before the question.",
+            "The rhythm of the song was catchy.",
+            "They climbed the mountain in the morning.",
+        ],
+    },
+    "Level 3": {
+        icon: "🟡",
+        color: "#feca57",
+        sentences: [
+            "The photographer thought the different rhythm was important.",
+            "She received a beautiful beginning to the story.",
+            "The environment around the ancient castle was mysterious.",
+            "He believed the extraordinary experience changed his perspective.",
+            "The temperature dropped significantly throughout the evening hours.",
+            "She practiced the pronunciation of every foreign word carefully.",
+            "The government announced a necessary change to the schedule.",
+            "He recognized the sophisticated technique used in the painting.",
+            "The independent restaurant guaranteed a professional experience every time.",
+            "She determined that the physical challenge required more preparation.",
+            "The atmosphere at the championship was particularly exciting and loud.",
+            "He immediately noticed the separate entrance to the building.",
+            "The communication between the different departments was essential.",
+            "She achieved an extraordinary position through her knowledge and courage.",
+            "The calendar showed a Wednesday appointment at the library.",
+        ],
+    },
+};

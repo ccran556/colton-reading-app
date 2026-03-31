@@ -25,6 +25,11 @@ const PASSAGE_LISTS = {
                 ],
                 level: 1,
                 wordCount: 97,
+                questions: [
+                    { q: "Where did Jake hear barking?", choices: ["Near the old fence", "At the park", "Inside the house", "At school"], answer: 0 },
+                    { q: "What did the dog NOT have?", choices: ["A tail", "A collar", "Ears", "Fur"], answer: 1 },
+                    { q: "What does 'shaking from the cold' tell you about the dog?", choices: ["It was scared of Jake", "It was freezing and needed warmth", "It was happy to see Jake", "It was very old"], answer: 1 },
+                ],
             },
             {
                 id: "easy-2",
@@ -44,6 +49,11 @@ const PASSAGE_LISTS = {
                 ],
                 level: 1,
                 wordCount: 97,
+                questions: [
+                    { q: "When do Marcus and his dad make pizza?", choices: ["Every Monday", "Every Friday", "On birthdays", "Every Sunday"], answer: 1 },
+                    { q: "What toppings did Marcus choose?", choices: ["Mushrooms and olives", "Pepperoni and extra cheese", "Sausage and peppers", "Just cheese"], answer: 1 },
+                    { q: "What does 'from scratch' mean?", choices: ["They bought it frozen", "They made it themselves from basic ingredients", "They ordered it online", "They scratched the dough"], answer: 1 },
+                ],
             },
             {
                 id: "easy-3",
@@ -61,6 +71,11 @@ const PASSAGE_LISTS = {
                 ],
                 level: 1,
                 wordCount: 96,
+                questions: [
+                    { q: "What path was Mia riding on?", choices: ["A paved road", "A gravel path near the river", "A sidewalk", "A dirt trail in the woods"], answer: 1 },
+                    { q: "What could Mia see from the top of the hill?", choices: ["Just trees", "The whole town", "The ocean", "Her house"], answer: 1 },
+                    { q: "How did Mia feel at the top of the hill?", choices: ["Scared", "Angry", "Happy and peaceful", "Tired and bored"], answer: 2 },
+                ],
             },
         ],
     },
@@ -85,6 +100,11 @@ const PASSAGE_LISTS = {
                 ],
                 level: 2,
                 wordCount: 88,
+                questions: [
+                    { q: "What hung from the ceiling of the cave?", choices: ["Bats", "Lights", "Shapes like rock icicles", "Vines"], answer: 2 },
+                    { q: "How did the waterfall sound from inside the cave?", choices: ["Like distant thunder", "Like a whisper", "Like music", "They couldn't hear it"], answer: 0 },
+                    { q: "What does 'damp' mean?", choices: ["Very hot", "Slightly wet", "Completely dry", "Extremely cold"], answer: 1 },
+                ],
             },
             {
                 id: "adventure-2",
@@ -104,6 +124,11 @@ const PASSAGE_LISTS = {
                 ],
                 level: 2,
                 wordCount: 104,
+                questions: [
+                    { q: "Why was the map hard to read?", choices: ["It was torn", "The dim light made it hard", "It was written in another language", "Kai forgot his glasses"], answer: 1 },
+                    { q: "What did Kai eat in the tent?", choices: ["A sandwich", "Trail mix", "A granola bar", "Nothing"], answer: 2 },
+                    { q: "What was Kai's goal for the next day?", choices: ["Go home", "Reach the summit", "Find water", "Meet his friends"], answer: 1 },
+                ],
             },
             {
                 id: "adventure-3",
@@ -123,6 +148,11 @@ const PASSAGE_LISTS = {
                 ],
                 level: 2,
                 wordCount: 94,
+                questions: [
+                    { q: "How long had the lighthouse been closed?", choices: ["Five years", "Ten years", "Over twenty years", "One hundred years"], answer: 2 },
+                    { q: "What covered the metal door?", choices: ["Paint", "Rust", "Vines", "Moss"], answer: 1 },
+                    { q: "What does 'standing at the edge of the world' mean here?", choices: ["The world was ending", "They were about to fall", "The view was so vast it felt endless", "They were lost"], answer: 2 },
+                ],
             },
         ],
     },
@@ -148,6 +178,11 @@ const PASSAGE_LISTS = {
                 ],
                 level: 3,
                 wordCount: 108,
+                questions: [
+                    { q: "What are rovers looking for on Mars?", choices: ["Aliens", "Signs of ancient water", "Gold", "Plants"], answer: 1 },
+                    { q: "How long would it take to travel to Mars?", choices: ["A few days", "About seven months", "Two years", "One week"], answer: 1 },
+                    { q: "What does 'analyze' mean?", choices: ["To throw away", "To examine carefully", "To break apart", "To build something"], answer: 1 },
+                ],
             },
             {
                 id: "science-2",
@@ -166,6 +201,11 @@ const PASSAGE_LISTS = {
                 ],
                 level: 3,
                 wordCount: 110,
+                questions: [
+                    { q: "What causes thunder?", choices: ["Clouds bumping together", "A shock wave from heated air", "Wind blowing fast", "Rain hitting the ground"], answer: 1 },
+                    { q: "How can you estimate the distance of a storm?", choices: ["By how loud the thunder is", "By counting seconds between flash and boom", "By the color of the lightning", "By the size of the clouds"], answer: 1 },
+                    { q: "Every five seconds between lightning and thunder equals about how far?", choices: ["Five miles", "Ten feet", "One mile", "Half a mile"], answer: 2 },
+                ],
             },
         ],
     },
@@ -189,6 +229,11 @@ const PASSAGE_LISTS = {
                 ],
                 level: 2,
                 wordCount: 109,
+                questions: [
+                    { q: "How many points were they down at halftime?", choices: ["Five", "Eight", "Twelve", "Twenty"], answer: 2 },
+                    { q: "Who hit the three-pointer from the corner?", choices: ["Jaylen", "Marcus", "Coach Davis", "The other team"], answer: 1 },
+                    { q: "What does 'momentum had completely shifted' mean?", choices: ["The ball rolled away", "The energy and confidence changed to their side", "They got tired", "The game was paused"], answer: 1 },
+                ],
             },
             {
                 id: "sports-2",
@@ -208,6 +253,11 @@ const PASSAGE_LISTS = {
                 ],
                 level: 2,
                 wordCount: 121,
+                questions: [
+                    { q: "Where did Alex start building?", choices: ["In a forest", "On a small island", "In a desert", "On a mountain"], answer: 1 },
+                    { q: "What was Alex's biggest project?", choices: ["A castle", "An underground mine", "A bridge between two mountain peaks", "A farm"], answer: 2 },
+                    { q: "How did his friend react to the world?", choices: ["He was bored", "He thought it was the coolest thing ever", "He wanted to start over", "He didn't say anything"], answer: 1 },
+                ],
             },
         ],
     },
@@ -399,6 +449,12 @@ const PASSAGE_LISTS = {
                 ],
                 level: 2,
                 wordCount: 3714,
+                questions: [
+                    { q: "Where did Buck live before he was taken?", choices: ["In Alaska", "At Judge Miller's place in Santa Clara Valley", "On a farm in Texas", "In a kennel in the city"], answer: 1 },
+                    { q: "Why were men looking for big, strong dogs?", choices: ["For dog shows", "To guard houses", "To work during the Klondike gold rush", "For a dog race"], answer: 2 },
+                    { q: "What does 'demesne' mean in the story?", choices: ["A type of dog", "Territory or domain", "A building", "A type of food"], answer: 1 },
+                    { q: "Who tricked Buck and sold him?", choices: ["Judge Miller", "The gardener", "Manuel, the gardener's helper", "A stranger on the street"], answer: 2 },
+                ],
             },
             {
                 id: "cotw-ch2",

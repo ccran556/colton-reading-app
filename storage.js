@@ -269,6 +269,246 @@ const SRS = {
         localStorage.removeItem(this.LISTENING_KEY);
     },
 
+    // ===== Phoneme Stats =====
+    PHONEME_KEY: "coltons_app_phoneme_stats",
+
+    savePhonemeResult(category, correct, total) {
+        let stats;
+        try {
+            stats = JSON.parse(localStorage.getItem(this.PHONEME_KEY)) || { sessions: [] };
+        } catch {
+            stats = { sessions: [] };
+        }
+        stats.sessions.push({
+            category,
+            correct,
+            total,
+            date: Date.now(),
+        });
+        if (stats.sessions.length > 50) stats.sessions = stats.sessions.slice(-50);
+        localStorage.setItem(this.PHONEME_KEY, JSON.stringify(stats));
+    },
+
+    getPhonemeStats() {
+        try {
+            return JSON.parse(localStorage.getItem(this.PHONEME_KEY)) || { sessions: [] };
+        } catch {
+            return { sessions: [] };
+        }
+    },
+
+    // ===== Morpheme Stats =====
+    MORPHEME_KEY: "coltons_app_morpheme_stats",
+
+    saveMorphemeResult(correct, total) {
+        let stats;
+        try {
+            stats = JSON.parse(localStorage.getItem(this.MORPHEME_KEY)) || { sessions: [] };
+        } catch {
+            stats = { sessions: [] };
+        }
+        stats.sessions.push({
+            correct,
+            total,
+            date: Date.now(),
+        });
+        if (stats.sessions.length > 50) stats.sessions = stats.sessions.slice(-50);
+        localStorage.setItem(this.MORPHEME_KEY, JSON.stringify(stats));
+    },
+
+    getMorphemeStats() {
+        try {
+            return JSON.parse(localStorage.getItem(this.MORPHEME_KEY)) || { sessions: [] };
+        } catch {
+            return { sessions: [] };
+        }
+    },
+
+    // ===== Speed Drill Stats =====
+    SPEED_DRILL_KEY: "coltons_app_speed_drill",
+
+    saveSpeedDrillResult(level, wpm, accuracy, helped) {
+        let data;
+        try {
+            data = JSON.parse(localStorage.getItem(this.SPEED_DRILL_KEY)) || {};
+        } catch {
+            data = {};
+        }
+        if (!data[level]) data[level] = { best: null, history: [] };
+
+        const result = {
+            wpm,
+            accuracy,
+            helped,       // array of words that needed help
+            date: Date.now(),
+        };
+
+        // Update personal best (higher WPM with >= 80% accuracy wins)
+        if (!data[level].best || (accuracy >= 80 && wpm > data[level].best.wpm)) {
+            data[level].best = { wpm, accuracy, date: Date.now() };
+        }
+
+        data[level].history.push(result);
+        // Keep last 30 sessions per level
+        if (data[level].history.length > 30) {
+            data[level].history = data[level].history.slice(-30);
+        }
+
+        localStorage.setItem(this.SPEED_DRILL_KEY, JSON.stringify(data));
+        return data[level].best;
+    },
+
+    getSpeedDrillBest(level) {
+        try {
+            const data = JSON.parse(localStorage.getItem(this.SPEED_DRILL_KEY)) || {};
+            return (data[level] && data[level].best) || null;
+        } catch {
+            return null;
+        }
+    },
+
+    getSpeedDrillHistory(level) {
+        try {
+            const data = JSON.parse(localStorage.getItem(this.SPEED_DRILL_KEY)) || {};
+            return (data[level] && data[level].history) || [];
+        } catch {
+            return [];
+        }
+    },
+
+    // ===== Dictation Stats =====
+    DICTATION_KEY: "coltons_app_dictation_stats",
+
+    saveDictationResult(level, sentencesCorrect, totalSentences, wordAccuracy, missedWords) {
+        let stats;
+        try {
+            stats = JSON.parse(localStorage.getItem(this.DICTATION_KEY)) || {};
+        } catch {
+            stats = {};
+        }
+        if (!stats[level]) stats[level] = { sessions: [] };
+        stats[level].sessions.push({
+            date: Date.now(),
+            sentencesCorrect,
+            totalSentences,
+            wordAccuracy,
+            missedWords: missedWords || [],
+        });
+        // Keep last 30 sessions per level
+        if (stats[level].sessions.length > 30) {
+            stats[level].sessions = stats[level].sessions.slice(-30);
+        }
+        localStorage.setItem(this.DICTATION_KEY, JSON.stringify(stats));
+    },
+
+    getDictationStats() {
+        try {
+            return JSON.parse(localStorage.getItem(this.DICTATION_KEY)) || {};
+        } catch {
+            return {};
+        }
+    },
+
+    // ===== Comprehension Stats =====
+    COMPREHENSION_KEY: "coltons_app_comprehension",
+
+    saveComprehensionResult(passageId, correct, total) {
+        let data;
+        try { data = JSON.parse(localStorage.getItem(this.COMPREHENSION_KEY)) || {}; } catch { data = {}; }
+        if (!data[passageId]) data[passageId] = [];
+        data[passageId].push({ date: Date.now(), correct, total });
+        if (data[passageId].length > 20) data[passageId] = data[passageId].slice(-20);
+        localStorage.setItem(this.COMPREHENSION_KEY, JSON.stringify(data));
+    },
+
+    getComprehensionStats() {
+        try { return JSON.parse(localStorage.getItem(this.COMPREHENSION_KEY)) || {}; } catch { return {}; }
+    },
+
+    getComprehensionAverage() {
+        const data = this.getComprehensionStats();
+        let totalCorrect = 0, totalQuestions = 0;
+        for (const id of Object.keys(data)) {
+            for (const r of data[id]) {
+                totalCorrect += r.correct;
+                totalQuestions += r.total;
+            }
+        }
+        return totalQuestions > 0 ? Math.round((totalCorrect / totalQuestions) * 100) : 0;
+    },
+
+    // ===== Daily Practice Streak =====
+    PRACTICE_KEY: "coltons_app_practice_dates",
+
+    recordDailyPractice() {
+        const today = new Date().toISOString().split("T")[0];
+        let dates;
+        try { dates = JSON.parse(localStorage.getItem(this.PRACTICE_KEY)) || []; } catch { dates = []; }
+        if (!dates.includes(today)) {
+            dates.push(today);
+            // Keep last 365 days
+            if (dates.length > 365) dates = dates.slice(-365);
+            localStorage.setItem(this.PRACTICE_KEY, JSON.stringify(dates));
+        }
+    },
+
+    getDailyStreak() {
+        let dates;
+        try { dates = JSON.parse(localStorage.getItem(this.PRACTICE_KEY)) || []; } catch { dates = []; }
+        if (dates.length === 0) return 0;
+
+        const sorted = [...dates].sort().reverse();
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        // Check if today or yesterday was practiced (allow checking mid-day)
+        const latest = new Date(sorted[0] + "T00:00:00");
+        const diffDays = Math.floor((today - latest) / 86400000);
+        if (diffDays > 1) return 0;
+
+        let streak = 1;
+        for (let i = 1; i < sorted.length; i++) {
+            const prev = new Date(sorted[i - 1] + "T00:00:00");
+            const curr = new Date(sorted[i] + "T00:00:00");
+            const gap = Math.floor((prev - curr) / 86400000);
+            if (gap === 1) streak++;
+            else break;
+        }
+        return streak;
+    },
+
+    getPracticeHistory(days) {
+        let dates;
+        try { dates = JSON.parse(localStorage.getItem(this.PRACTICE_KEY)) || []; } catch { dates = []; }
+        if (days) {
+            const cutoff = new Date();
+            cutoff.setDate(cutoff.getDate() - days);
+            const cutoffStr = cutoff.toISOString().split("T")[0];
+            return dates.filter(d => d >= cutoffStr);
+        }
+        return dates;
+    },
+
+    getLongestStreak() {
+        let dates;
+        try { dates = JSON.parse(localStorage.getItem(this.PRACTICE_KEY)) || []; } catch { dates = []; }
+        if (dates.length === 0) return 0;
+
+        const sorted = [...new Set(dates)].sort();
+        let longest = 1, current = 1;
+        for (let i = 1; i < sorted.length; i++) {
+            const prev = new Date(sorted[i - 1] + "T00:00:00");
+            const curr = new Date(sorted[i] + "T00:00:00");
+            if (Math.floor((curr - prev) / 86400000) === 1) {
+                current++;
+                if (current > longest) longest = current;
+            } else {
+                current = 1;
+            }
+        }
+        return longest;
+    },
+
     // ===== Full Reset — clears everything =====
     resetEverything() {
         // SRS & stats
@@ -289,5 +529,16 @@ const SRS = {
         localStorage.removeItem("coltons_app_learning_profile");
         // Struggle patterns
         localStorage.removeItem("coltons_app_struggles");
+        // Phoneme & Morpheme
+        localStorage.removeItem(this.PHONEME_KEY);
+        localStorage.removeItem(this.MORPHEME_KEY);
+        // Speed Drill
+        localStorage.removeItem(this.SPEED_DRILL_KEY);
+        // Dictation
+        localStorage.removeItem(this.DICTATION_KEY);
+        // Comprehension
+        localStorage.removeItem(this.COMPREHENSION_KEY);
+        // Practice streak
+        localStorage.removeItem(this.PRACTICE_KEY);
     },
 };
