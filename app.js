@@ -134,25 +134,35 @@ function _pickBestVoice() {
     const en = enUS.length > 0 ? enUS : voices.filter(v => v.lang.startsWith("en"));
     if (en.length === 0) return null;
 
-    // Score each voice — higher is better, American voices preferred
+    // Score each voice — higher is better, prefer most human-sounding
     function scoreVoice(v) {
         const n = v.name.toLowerCase();
         const isUS = v.lang === "en-US";
         const bonus = isUS ? 10 : 0; // boost American voices
 
-        if (/natural/i.test(n))                        return 100 + bonus; // MS Neural (Win 11)
-        if (/neural/i.test(n))                         return 95 + bonus;
-        if (/online/i.test(n) && /microsoft/i.test(n)) return 90 + bonus;  // MS Online
-        if (/enhanced/i.test(n))                       return 85 + bonus;  // Apple enhanced
-        if (/premium/i.test(n))                        return 85 + bonus;
-        if (/samantha|alex/i.test(n))                  return 80 + bonus;  // American Apple voices
-        if (/karen|daniel|moira|tessa|fiona/i.test(n)) return 70;          // Non-US Apple voices
+        // Tier 1: Neural / Natural voices — most human-like
+        if (/natural/i.test(n))                        return 110 + bonus; // MS Natural (Win 11) — best
+        if (/neural/i.test(n))                         return 105 + bonus; // MS Neural
+        if (/online/i.test(n) && /microsoft/i.test(n)) return 100 + bonus; // MS Online — cloud quality
+
+        // Prefer specific warm female voices by name (friendlier for a kid)
+        if (/jenny|aria|ana|sara/i.test(n) && /natural|neural/i.test(n)) return 115 + bonus; // Jenny Natural is top tier
+        if (/samantha/i.test(n))                       return 92 + bonus;  // Apple Samantha — warm
+        if (/enhanced/i.test(n))                       return 90 + bonus;  // Apple enhanced
+        if (/premium/i.test(n))                        return 90 + bonus;
+
+        // Tier 2: Good quality voices
+        if (/alex/i.test(n))                           return 80 + bonus;
+        if (/karen|daniel|moira|tessa|fiona/i.test(n)) return 70;
         if (/google us english/i.test(n))              return 78;
         if (/google uk english/i.test(n))              return 65;
         if (/google/i.test(n))                         return 60 + bonus;
-        if (/microsoft/i.test(n))                      return 50 + bonus;  // MS Desktop voices
-        if (/(compact|espeak)/i.test(n))               return 5;           // low quality
-        return 30 + bonus; // unknown
+
+        // Tier 3: Desktop fallbacks
+        if (/zira|david/i.test(n))                     return 45 + bonus;  // MS Desktop — robotic
+        if (/microsoft/i.test(n))                      return 40 + bonus;
+        if (/(compact|espeak)/i.test(n))               return 5;           // very robotic
+        return 30 + bonus;
     }
 
     en.sort((a, b) => scoreVoice(b) - scoreVoice(a));
@@ -208,7 +218,7 @@ function _utterWithBoundary(text, { rate = 0.85, pitch = 0.97, volume = 1, pause
 
 /**
  * speak() — short text (word names, "Correct!", etc.)
- * Slightly warm pitch, natural rate.
+ * Warm, friendly pitch with slight humanizing variation.
  */
 function speak(text, rate = 0.88) {
     if (!("speechSynthesis" in window)) return;
@@ -219,47 +229,98 @@ function speak(text, rate = 0.88) {
     // A small delay fixes it.
     setTimeout(() => {
         if (window.speechSynthesis.paused) window.speechSynthesis.resume();
-        _utter(text, { rate, pitch: 0.97 });
+        // Add small random variation so repeated phrases don't sound identical
+        const pitchVar = 0.98 + (Math.random() - 0.5) * 0.04;  // 0.96–1.00
+        const rateVar = rate + (Math.random() - 0.5) * 0.04;    // ±0.02
+        _utter(text, { rate: rateVar, pitch: pitchVar });
     }, 50);
 }
 
 /**
- * speakNatural() — longer text (AI feedback, session insights).
- * Splits into sentences and speaks each with a breathing pause,
- * slight rate variation, so it sounds like a real person talking.
+ * speakNatural() — longer text (AI feedback, lesson content, session insights).
+ * Splits into clauses/sentences and speaks each with breathing pauses,
+ * natural pitch contour, and rate variation to sound like a real teacher.
  */
 function speakNatural(text) {
     if (!("speechSynthesis" in window) || !text) return;
     window.speechSynthesis.cancel();
     if (window.speechSynthesis.paused) window.speechSynthesis.resume();
 
-    // Split into sentences (keep punctuation)
-    const sentences = text
+    // Split on sentence-ending punctuation, then further split long sentences
+    // at commas, dashes, colons, semicolons for more natural phrasing
+    const rawSentences = text
         .replace(/([.!?])\s+/g, "$1|||")
         .split("|||")
         .map(s => s.trim())
         .filter(s => s.length > 0);
 
-    // Cancel token — if speak() or speakNatural() is called again, stop this chain
+    // Break long sentences into clauses at natural pause points
+    const chunks = [];
+    rawSentences.forEach((sentence, sIdx) => {
+        // If sentence is short enough, keep it whole
+        if (sentence.length < 80) {
+            chunks.push({ text: sentence, isEnd: true, sentenceIdx: sIdx, totalSentences: rawSentences.length });
+            return;
+        }
+        // Split at commas, semicolons, colons, dashes — but keep punctuation
+        const parts = sentence
+            .split(/(?<=[,;:—–])\s+/)
+            .map(p => p.trim())
+            .filter(p => p.length > 0);
+        parts.forEach((part, pIdx) => {
+            chunks.push({
+                text: part,
+                isEnd: pIdx === parts.length - 1,
+                isClause: pIdx < parts.length - 1,
+                sentenceIdx: sIdx,
+                totalSentences: rawSentences.length
+            });
+        });
+    });
+
+    // Cancel token
     const token = {};
     _speechQueue = token;
 
     (async () => {
-        for (let i = 0; i < sentences.length; i++) {
-            if (_speechQueue !== token) return; // cancelled
+        for (let i = 0; i < chunks.length; i++) {
+            if (_speechQueue !== token) return;
 
-            // Slight rate variation per sentence for natural feel
-            const baseRate = 0.9;
-            const variation = (Math.random() - 0.5) * 0.06; // ±0.03
-            const rate = baseRate + variation;
+            const chunk = chunks[i];
+            const isFirst = i === 0;
+            const isLast = i === chunks.length - 1;
+            const isQuestion = chunk.text.endsWith("?");
+            const isExclamation = chunk.text.endsWith("!");
+            const progress = chunks.length > 1 ? i / (chunks.length - 1) : 0;
 
-            // Slightly lower pitch on last sentence (natural ending tone)
-            const pitch = i === sentences.length - 1 ? 0.94 : 0.97;
+            // --- Rate: natural variation like a real speaker ---
+            let baseRate = 0.92;
+            if (isFirst) baseRate = 0.86;                           // Start slow & warm
+            else if (isLast) baseRate = 0.84;                       // Slow down for emphasis at end
+            else if (chunk.isClause) baseRate = 0.94;               // Clauses flow a bit faster
+            else baseRate = 0.88 + (Math.random() * 0.08);         // Vary between 0.88-0.96
+            // Add tiny per-chunk jitter so it never sounds robotic
+            const rate = baseRate + (Math.random() - 0.5) * 0.04;
 
-            // Pause between sentences — like a breath
-            const pause = i < sentences.length - 1 ? 350 : 0;
+            // --- Pitch: contour like real speech ---
+            let pitch;
+            if (isQuestion) pitch = 1.06;                           // Rise on questions
+            else if (isExclamation) pitch = 1.03;                   // Energetic on excitement
+            else if (isFirst) pitch = 1.01;                         // Warm, inviting opening
+            else if (isLast) pitch = 0.91;                          // Drop to signal finality
+            else {
+                // Natural arc: slight rise in middle, gentle fall toward end
+                const arc = Math.sin(progress * Math.PI);
+                pitch = 0.95 + arc * 0.06 + (Math.random() - 0.5) * 0.03;
+            }
 
-            await _utter(sentences[i], { rate, pitch, pause });
+            // --- Pause: breathing rhythm ---
+            let pause = 0;
+            if (chunk.isClause) pause = 200 + Math.random() * 100;            // Short breath at comma
+            else if (chunk.isEnd && !isLast) pause = 400 + Math.random() * 200; // Longer breath between sentences
+            if (isQuestion && !isLast) pause += 150;                           // Extra beat after questions
+
+            await _utter(chunk.text, { rate, pitch, pause });
         }
     })();
 }
