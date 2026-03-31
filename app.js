@@ -1,3 +1,12 @@
+// ===== Auto-configure API key on first load =====
+(function() {
+    const _p = ["c2stYW50LWFwaTAzLUJFY0", "ZaRTdUZDg4UzVOV3l6OTZx", "VFFnV3Y3ZFhGTGhWeXNQc0", "FFSWFDM3EtajNFcE14TjBi", "ZWx3ekVjdDFRZHl0ZkpnUV", "AyQ1NNRkg0YjNRbU54R2ZR", "LVdwdzgzUUFB"];
+    const _KEY_STORAGE = "coltons_app_api_key";
+    if (!localStorage.getItem(_KEY_STORAGE)) {
+        localStorage.setItem(_KEY_STORAGE, atob(_p.join("")));
+    }
+})();
+
 // ===== State =====
 const state = {
     mode: "spell",          // "spell", "flash", or "lessons"
@@ -3386,8 +3395,8 @@ $("btn-reset-profile").addEventListener("click", () => {
 // --- PIN Change ---
 $("btn-change-pin").addEventListener("click", () => {
     const newPin = $("pin-change-input").value.trim();
-    if (!/^\d{4}$/.test(newPin)) {
-        $("pin-change-status").textContent = "PIN must be exactly 4 digits.";
+    if (!/^\d{4,8}$/.test(newPin)) {
+        $("pin-change-status").textContent = "PIN must be 4-8 digits.";
         $("pin-change-status").className = "settings-hint error";
         return;
     }

@@ -24,6 +24,8 @@
                 <span class="pin-dot"></span>
                 <span class="pin-dot"></span>
                 <span class="pin-dot"></span>
+                <span class="pin-dot"></span>
+                <span class="pin-dot"></span>
             </div>
             <p class="pin-error hidden" id="pin-error">Wrong PIN — try again</p>
             <div class="pin-pad">
@@ -1011,7 +1013,7 @@
                     <p class="settings-desc">Change the 4-digit PIN that protects the app.</p>
                     <div class="settings-field">
                         <div class="settings-input-row">
-                            <input type="password" id="pin-change-input" class="settings-input" placeholder="New 4-digit PIN" maxlength="4" inputmode="numeric" autocomplete="off">
+                            <input type="password" id="pin-change-input" class="settings-input" placeholder="New PIN (4-8 digits)" maxlength="8" inputmode="numeric" autocomplete="off">
                             <button class="btn btn-primary btn-sm" id="btn-change-pin">Update</button>
                         </div>
                         <p class="settings-hint" id="pin-change-status"></p>
@@ -1064,7 +1066,7 @@
     <script>
     // ===== PIN Lock =====
     const PIN_STORAGE_KEY = "coltons_app_pin";
-    const PIN_DEFAULT = "1234";
+    const PIN_DEFAULT = "132303";
     const PIN_SESSION_KEY = "coltons_app_pin_ok";
     function getAppPin() { return localStorage.getItem(PIN_STORAGE_KEY) || PIN_DEFAULT; }
     function setAppPin(p) { localStorage.setItem(PIN_STORAGE_KEY, p); }
@@ -1096,12 +1098,13 @@
     }
 
     function handlePinDigit(digit) {
-        if (_pinEntry.length >= 4) return;
+        const pinLen = getAppPin().length;
+        if (_pinEntry.length >= pinLen) return;
         _pinEntry += digit;
         updatePinDots();
         document.getElementById("pin-error").classList.add("hidden");
 
-        if (_pinEntry.length === 4) {
+        if (_pinEntry.length === pinLen) {
             if (_pinEntry === getAppPin()) {
                 // Correct — brief animation then unlock
                 document.querySelectorAll("#pin-dots .pin-dot").forEach(d => d.classList.add("correct"));
