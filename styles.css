@@ -2308,6 +2308,248 @@ body.theme-dark .bg-color-btn.active::after { color: #fff; }
     border: 1px solid rgba(42, 157, 143, 0.2);
 }
 
+/* Growth Chart */
+.growth-chart-svg {
+    width: 100%;
+    max-width: 360px;
+    margin: 0 auto;
+    display: block;
+}
+.growth-chart-legend {
+    display: flex;
+    gap: 0.8rem;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-bottom: 0.4rem;
+}
+.growth-legend-item {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+.growth-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+}
+.growth-dots-icon {
+    font-size: 0.5rem;
+    color: var(--accent);
+    letter-spacing: -1px;
+}
+
+/* ===== Write Mode ===== */
+.write-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    padding: 0.5rem 0;
+}
+.write-prompt {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    text-align: center;
+}
+.write-prompts {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+.write-prompt-btn {
+    background: var(--surface) !important;
+    border: 1px solid rgba(0,0,0,0.08) !important;
+    color: var(--text) !important;
+    font-size: 0.8rem !important;
+    text-align: left !important;
+    padding: 0.5rem 0.8rem !important;
+    border-radius: var(--radius-sm) !important;
+    cursor: pointer;
+    transition: all var(--transition);
+}
+.write-prompt-btn:hover {
+    background: var(--surface-hover) !important;
+    border-color: var(--accent) !important;
+}
+.write-area {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+.write-textarea {
+    font-family: var(--font);
+    font-size: 1rem;
+    line-height: 1.8;
+    letter-spacing: var(--user-letter-spacing);
+    word-spacing: var(--user-word-spacing);
+    padding: 1rem;
+    border: 2px solid rgba(0,0,0,0.1);
+    border-radius: var(--radius);
+    background: var(--surface);
+    color: var(--text);
+    resize: vertical;
+    min-height: 150px;
+    outline: none;
+    transition: border-color var(--transition);
+}
+.write-textarea:focus {
+    border-color: var(--accent);
+}
+.write-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+.write-mic-btn.listening {
+    background: var(--error) !important;
+    animation: pulse 1.5s infinite;
+}
+.write-word-count {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-left: auto;
+}
+.write-feedback {
+    background: var(--surface);
+    border-radius: var(--radius);
+    padding: 1rem;
+    border: 1px solid rgba(0,0,0,0.08);
+}
+.write-feedback-title {
+    font-size: 0.85rem;
+    margin-bottom: 0.5rem;
+    color: var(--text);
+}
+.write-flagged-word {
+    display: inline-block;
+    background: rgba(217, 79, 79, 0.15);
+    color: var(--error);
+    padding: 0.2rem 0.5rem;
+    border-radius: var(--radius-sm);
+    margin: 0.15rem;
+    font-size: 0.85rem;
+    border: 1px solid rgba(217, 79, 79, 0.2);
+}
+.write-ai-response {
+    margin-top: 0.75rem;
+    padding: 0.75rem;
+    background: rgba(91, 75, 181, 0.08);
+    border-radius: var(--radius-sm);
+    font-size: 0.85rem;
+    line-height: 1.6;
+    color: var(--text);
+}
+.write-actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+/* ===== b/d/p/q Training ===== */
+.bdpq-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.25rem;
+    padding: 1rem 0;
+}
+.bdpq-mnemonic {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    text-align: center;
+    min-height: 1.2em;
+}
+.bdpq-display {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 120px;
+}
+.bdpq-big-letter {
+    font-size: 6rem;
+    font-weight: 700;
+    color: var(--text);
+    font-family: 'OpenDyslexic', var(--font), sans-serif;
+    line-height: 1;
+    user-select: none;
+}
+.bdpq-word-display {
+    font-size: 2.5rem;
+    font-weight: 600;
+    color: var(--text);
+    letter-spacing: 0.05em;
+}
+.bdpq-instruction {
+    font-size: 1rem;
+    color: var(--text);
+    text-align: center;
+    font-weight: 500;
+}
+.bdpq-choices {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.75rem;
+    width: 100%;
+    max-width: 320px;
+}
+.bdpq-choice-btn {
+    font-size: 2rem !important;
+    font-weight: 700 !important;
+    padding: 0.8rem !important;
+    border-radius: var(--radius) !important;
+    background: var(--surface) !important;
+    border: 2px solid rgba(0,0,0,0.1) !important;
+    color: var(--text) !important;
+    cursor: pointer;
+    transition: all var(--transition);
+    font-family: 'OpenDyslexic', var(--font), sans-serif !important;
+}
+.bdpq-choice-btn:hover:not(:disabled) {
+    border-color: var(--accent) !important;
+    transform: scale(1.05);
+}
+.bdpq-choice-btn.bdpq-correct {
+    background: rgba(0, 184, 148, 0.2) !important;
+    border-color: var(--success) !important;
+    color: var(--success) !important;
+}
+.bdpq-choice-btn.bdpq-wrong {
+    background: rgba(217, 79, 79, 0.15) !important;
+    border-color: var(--error) !important;
+    color: var(--error) !important;
+}
+.bdpq-feedback {
+    text-align: center;
+    min-height: 3rem;
+}
+.bdpq-fb-correct {
+    color: var(--success);
+    font-weight: 600;
+    font-size: 1.1rem;
+}
+.bdpq-fb-wrong {
+    color: var(--error);
+    font-weight: 500;
+    font-size: 0.95rem;
+}
+.bdpq-fb-hint {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    font-style: italic;
+}
+.bdpq-streak {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+}
+#bdpq-streak-val {
+    font-weight: 700;
+    color: var(--accent);
+}
+
 /* ===== Custom Word List ===== */
 .custom-word-form {
     display: flex;
@@ -2583,6 +2825,28 @@ body.theme-dark .bg-color-btn.active::after { color: #fff; }
     line-height: 1.8;
     color: var(--text);
     letter-spacing: 0.01em;
+}
+
+/* Live word-by-word highlighting during read aloud */
+.read-live-word {
+    display: inline;
+    padding: 0.1rem 0.15rem;
+    border-radius: 4px;
+    transition: background 0.2s ease, color 0.2s ease, transform 0.15s ease;
+}
+.read-live-word.word-matched {
+    background: rgba(0, 184, 148, 0.25);
+    color: var(--success);
+}
+.read-live-word.word-heard {
+    background: rgba(0, 184, 148, 0.12);
+    color: var(--success);
+    opacity: 0.7;
+}
+.read-live-word.word-current {
+    background: rgba(91, 75, 181, 0.15);
+    border-bottom: 2px solid var(--accent);
+    font-weight: 600;
 }
 
 /* Mic Controls */

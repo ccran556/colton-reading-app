@@ -104,6 +104,9 @@ const screens = {
     dictationResult: $("dictation-result-screen"),
     comprehension: $("comprehension-screen"),
     comprehensionResult: $("comprehension-result-screen"),
+    write: $("write-screen"),
+    bdpq: $("bdpq-screen"),
+    bdpqResult: $("bdpq-result-screen"),
 };
 
 // ===== Load Persistent Stats =====
@@ -857,6 +860,19 @@ function renderCategories() {
     if (state.mode === "dictation") {
         showScreen("dictationSelect");
         renderDictationLevelSelect();
+        return;
+    }
+
+    // Write mode goes straight to writing screen
+    if (state.mode === "write") {
+        showScreen("write");
+        initWriteMode();
+        return;
+    }
+
+    // b/d/p/q mode goes straight to training
+    if (state.mode === "bdpq") {
+        startBdpqTraining();
         return;
     }
 
@@ -3577,6 +3593,7 @@ $("btn-settings").addEventListener("click", () => {
     // Toggles
     $("toggle-bionic").checked = !!ds.bionic;
     $("toggle-ruler").checked = !!ds.ruler;
+    $("toggle-hide-timer").checked = !!ds.hideTimer;
 
     // --- Voice settings ---
     const key = AI.getApiKey();
@@ -3735,6 +3752,13 @@ $("toggle-ruler").addEventListener("change", (e) => {
     s.ruler = e.target.checked;
     _saveDisplaySettings(s);
     applyDisplaySettings();
+});
+
+// Hide timer toggle
+$("toggle-hide-timer").addEventListener("change", (e) => {
+    const s = _loadDisplaySettings();
+    s.hideTimer = e.target.checked;
+    _saveDisplaySettings(s);
 });
 
 // --- OpenAI Voice Key ---
@@ -4330,7 +4354,128 @@ function renderDashboard() {
         </div>`;
     }
 
+    // Growth chart — weekly progress
+    html += _buildGrowthChart();
+
     $("dashboard-content").innerHTML = html;
+}
+
+function _buildGrowthChart() {
+    // Gather weekly data from multiple sources
+    const readingStats = SRS.getReadingStats();
+    const srsData = SRS._loadData();
+    const practiceHistory = SRS.getPracticeHistory(56); // 8 weeks
+
+    // Build weekly buckets (last 8 weeks)
+    const weeks = [];
+    const now = new Date();
+    for (let w = 7; w >= 0; w--) {
+        const weekStart = new Date(now);
+        weekStart.setDate(weekStart.getDate() - (w * 7 + now.getDay()));
+        weekStart.setHours(0, 0, 0, 0);
+        const weekEnd = new Date(weekStart);
+        weekEnd.setDate(weekEnd.getDate() + 7);
+
+        const weekLabel = `${weekStart.getMonth() + 1}/${weekStart.getDate()}`;
+
+        // Count words mastered (correctCount >= 3, streak >= 2) that were last seen this week
+        let mastered = 0;
+        for (const entry of Object.values(srsData)) {
+            if (entry.lastSeen >= weekStart.getTime() && entry.lastSeen < weekEnd.getTime()) {
+                if (entry.correctCount >= 3 && entry.streak >= 2) mastered++;
+            }
+        }
+
+        // Reading accuracy this week
+        const weekReadingSessions = readingStats.sessions.filter(s =>
+            s.date >= weekStart.getTime() && s.date < weekEnd.getTime()
+        );
+        const readingAccuracy = weekReadingSessions.length > 0
+            ? Math.round(weekReadingSessions.reduce((sum, s) => sum + (s.wordsCorrect / Math.max(1, s.wordsTotal)), 0) / weekReadingSessions.length * 100)
+            : null;
+
+        // Practice days this week
+        const practiceDays = practiceHistory.filter(d => {
+            const dt = new Date(d + "T00:00:00");
+            return dt >= weekStart && dt < weekEnd;
+        }).length;
+
+        weeks.push({ label: weekLabel, mastered, readingAccuracy, practiceDays });
+    }
+
+    // Check if there's any data at all
+    const hasData = weeks.some(w => w.mastered > 0 || w.readingAccuracy !== null || w.practiceDays > 0);
+    if (!hasData) {
+        return `
+        <div class="dashboard-card">
+            <span class="dashboard-card-title">Growth Over Time</span>
+            <p class="settings-desc" style="text-align:center;padding:1rem;">Keep practicing! Your growth chart will appear here after a few sessions.</p>
+        </div>`;
+    }
+
+    // SVG chart dimensions
+    const W = 320, H = 160, PAD = 30, PADT = 10;
+    const chartW = W - PAD * 2;
+    const chartH = H - PAD - PADT;
+    const barW = chartW / weeks.length;
+
+    // Max values for scaling
+    const maxMastered = Math.max(1, ...weeks.map(w => w.mastered));
+
+    // Build bars
+    let bars = "";
+    let labels = "";
+    let dots = "";
+    weeks.forEach((w, i) => {
+        const x = PAD + i * barW + barW / 2;
+
+        // Mastered words bar
+        const barH = (w.mastered / maxMastered) * chartH;
+        bars += `<rect x="${x - barW * 0.3}" y="${PADT + chartH - barH}" width="${barW * 0.6}" height="${barH}" rx="3" fill="var(--success)" opacity="0.7"/>`;
+
+        // Value on top of bar
+        if (w.mastered > 0) {
+            bars += `<text x="${x}" y="${PADT + chartH - barH - 4}" text-anchor="middle" font-size="10" fill="var(--success)" font-weight="600">${w.mastered}</text>`;
+        }
+
+        // Reading accuracy line dots
+        if (w.readingAccuracy !== null) {
+            const dotY = PADT + chartH - (w.readingAccuracy / 100) * chartH;
+            dots += `<circle cx="${x}" cy="${dotY}" r="4" fill="var(--accent)" stroke="#fff" stroke-width="1.5"/>`;
+            // Connect to previous dot
+            if (i > 0 && weeks[i - 1].readingAccuracy !== null) {
+                const prevX = PAD + (i - 1) * barW + barW / 2;
+                const prevY = PADT + chartH - (weeks[i - 1].readingAccuracy / 100) * chartH;
+                dots += `<line x1="${prevX}" y1="${prevY}" x2="${x}" y2="${dotY}" stroke="var(--accent)" stroke-width="2" opacity="0.6"/>`;
+            }
+        }
+
+        // Practice day indicators (small dots at bottom)
+        for (let d = 0; d < Math.min(w.practiceDays, 7); d++) {
+            bars += `<circle cx="${x - 9 + d * 3}" cy="${PADT + chartH + 12}" r="1.5" fill="${d < w.practiceDays ? 'var(--accent)' : 'rgba(0,0,0,0.1)'}"/>`;
+        }
+
+        // Week label
+        labels += `<text x="${x}" y="${H - 2}" text-anchor="middle" font-size="9" fill="var(--text-muted)">${w.label}</text>`;
+    });
+
+    return `
+    <div class="dashboard-card">
+        <span class="dashboard-card-title">Growth Over Time</span>
+        <div class="growth-chart-legend">
+            <span class="growth-legend-item"><span class="growth-dot" style="background:var(--success);"></span> Words mastered</span>
+            <span class="growth-legend-item"><span class="growth-dot" style="background:var(--accent);"></span> Reading accuracy</span>
+            <span class="growth-legend-item"><span class="growth-dots-icon">●●●</span> Practice days</span>
+        </div>
+        <svg viewBox="0 0 ${W} ${H}" class="growth-chart-svg">
+            <!-- Grid lines -->
+            <line x1="${PAD}" y1="${PADT}" x2="${PAD}" y2="${PADT + chartH}" stroke="rgba(0,0,0,0.08)" stroke-width="1"/>
+            <line x1="${PAD}" y1="${PADT + chartH}" x2="${W - PAD}" y2="${PADT + chartH}" stroke="rgba(0,0,0,0.08)" stroke-width="1"/>
+            ${bars}
+            ${dots}
+            ${labels}
+        </svg>
+    </div>`;
 }
 
 $("btn-open-dashboard").addEventListener("click", () => {
@@ -4504,13 +4649,25 @@ function loadSentence() {
         }
     });
 
-    // Show focused sentence (with bionic if enabled)
-    const isBionic = _loadDisplaySettings().bionic;
-    if (isBionic) {
-        $("read-current-sentence").innerHTML = bionicTransform(sentence);
-    } else {
-        $("read-current-sentence").textContent = sentence;
-    }
+    // Show focused sentence as word-level spans for live highlighting
+    const sentenceEl = $("read-current-sentence");
+    sentenceEl.innerHTML = "";
+    const sentenceWords = sentence.split(/\s+/);
+    sentenceWords.forEach((word, wi) => {
+        const span = document.createElement("span");
+        span.className = "read-live-word";
+        span.dataset.wordIndex = wi;
+        const isBionic = _loadDisplaySettings().bionic;
+        if (isBionic) {
+            span.innerHTML = bionicTransform(word);
+        } else {
+            span.textContent = word;
+        }
+        sentenceEl.appendChild(span);
+        if (wi < sentenceWords.length - 1) {
+            sentenceEl.appendChild(document.createTextNode(" "));
+        }
+    });
 
     // Reset UI
     $("read-word-feedback").classList.add("hidden");
@@ -4640,10 +4797,15 @@ function startRecognition() {
             }
         }
         // Show real-time transcript
-        $("read-transcript-text").textContent = finalTranscript || interim;
+        const currentText = finalTranscript || interim;
+        $("read-transcript-text").textContent = currentText;
         if (finalTranscript) {
             $("read-transcript-text").className = "read-transcript-text final";
         }
+
+        // Live word-by-word highlighting
+        _highlightSpokenWords(currentText);
+
         // Reset the silence auto-submit timer on every result
         resetSilenceTimer();
     };
@@ -4788,6 +4950,63 @@ function compareWords(expectedSentence, spokenSentence) {
 }
 
 // ===== Process Sentence Result =====
+
+// Live highlight words in the current sentence as speech recognition returns results
+function _highlightSpokenWords(spokenText) {
+    if (!spokenText) return;
+    const wordSpans = document.querySelectorAll(".read-live-word");
+    if (wordSpans.length === 0) return;
+
+    const expectedSentence = state.currentPassage?.sentences[state.sentenceIndex] || "";
+    const expectedWords = expectedSentence.split(/\s+/).map(w => w.replace(/[^a-zA-Z']/g, "").toLowerCase());
+    const spokenWords = spokenText.trim().split(/\s+/).map(w => w.replace(/[^a-zA-Z']/g, "").toLowerCase());
+
+    // Match spoken words to expected words sequentially
+    let spokenIdx = 0;
+    wordSpans.forEach((span, i) => {
+        span.classList.remove("word-heard", "word-matched", "word-current");
+        if (spokenIdx < spokenWords.length && i <= spokenIdx + 1) {
+            // Check if this expected word matches the spoken word (fuzzy)
+            const exp = expectedWords[i] || "";
+            const spk = spokenWords[spokenIdx] || "";
+            if (exp && spk) {
+                const dist = _quickDistance(exp, spk);
+                if (dist <= Math.max(1, Math.floor(exp.length * 0.3))) {
+                    span.classList.add("word-matched");
+                    spokenIdx++;
+                } else if (spokenIdx > 0 && i < spokenIdx) {
+                    // Already passed this word
+                    span.classList.add("word-heard");
+                }
+            }
+        }
+    });
+
+    // Mark the next unmatched word as "current" (where Colton should be reading)
+    const nextUnmatched = document.querySelector(".read-live-word:not(.word-matched):not(.word-heard)");
+    if (nextUnmatched) nextUnmatched.classList.add("word-current");
+}
+
+// Quick Levenshtein distance for word matching
+function _quickDistance(a, b) {
+    if (a === b) return 0;
+    const la = a.length, lb = b.length;
+    if (la === 0) return lb;
+    if (lb === 0) return la;
+    let prev = Array.from({ length: lb + 1 }, (_, i) => i);
+    for (let i = 1; i <= la; i++) {
+        const curr = [i];
+        for (let j = 1; j <= lb; j++) {
+            curr[j] = Math.min(
+                prev[j] + 1,
+                curr[j - 1] + 1,
+                prev[j - 1] + (a[i - 1] !== b[j - 1] ? 1 : 0)
+            );
+        }
+        prev = curr;
+    }
+    return prev[lb];
+}
 
 function processSentenceResult(spokenText) {
     const passage = state.currentPassage;
@@ -5850,9 +6069,14 @@ function startSpeedDrill(level) {
 
     $("speed-drill-label").innerHTML = `&#9889; ${data.label}`;
     showScreen("speedDrill");
+
+    // Hide/show timer based on settings
+    const hideTimer = _loadDisplaySettings().hideTimer;
+    $("speed-timer").style.visibility = hideTimer ? "hidden" : "visible";
+
     showNextSpeedWord();
 
-    // Start the elapsed timer
+    // Start the elapsed timer (always tracks internally, display is optional)
     state.speedDrill.timerInterval = setInterval(updateSpeedTimer, 100);
 }
 
@@ -6981,6 +7205,371 @@ if ($("btn-comp-retry")) $("btn-comp-retry").addEventListener("click", () => {
     }
 });
 if ($("btn-comp-done")) $("btn-comp-done").addEventListener("click", () => {
+    showScreen("start");
+    renderCategories();
+});
+
+// ================================================================
+//  WRITE MODE — Voice-to-text composition
+// ================================================================
+const WRITE_PROMPTS = [
+    "Tell me about your favorite game and why you like it.",
+    "Describe what you did last weekend.",
+    "If you could have any superpower, what would it be and why?",
+    "Write about your favorite food and how it tastes.",
+    "Describe your best friend without saying their name.",
+    "If you could visit any place in the world, where would you go?",
+    "Tell me about something that made you laugh recently.",
+    "What would you do if you were invisible for a day?",
+];
+
+function initWriteMode() {
+    // Show random prompts
+    const promptsEl = $("write-prompts");
+    promptsEl.innerHTML = "";
+    shuffle([...WRITE_PROMPTS]).slice(0, 3).forEach(prompt => {
+        const btn = document.createElement("button");
+        btn.className = "btn btn-sm write-prompt-btn";
+        btn.textContent = prompt;
+        btn.addEventListener("click", () => {
+            $("write-prompt").textContent = prompt;
+            $("write-textarea").placeholder = "Start writing about: " + prompt.substring(0, 40) + "...";
+            $("write-textarea").focus();
+        });
+        promptsEl.appendChild(btn);
+    });
+
+    // Word count
+    $("write-textarea").addEventListener("input", _updateWriteWordCount);
+    _updateWriteWordCount();
+    $("write-feedback").classList.add("hidden");
+    $("btn-write-ai-feedback").classList.add("hidden");
+}
+
+function _updateWriteWordCount() {
+    const text = $("write-textarea").value.trim();
+    const count = text ? text.split(/\s+/).length : 0;
+    $("write-word-count").textContent = count + " word" + (count !== 1 ? "s" : "");
+}
+
+// Dictation in write mode
+let _writeRecognition = null;
+
+$("btn-write-mic").addEventListener("click", () => {
+    if (_writeRecognition) {
+        _writeRecognition.stop();
+        _writeRecognition = null;
+        $("btn-write-mic").classList.remove("listening");
+        $("btn-write-mic").textContent = "🎤 Dictate";
+        return;
+    }
+
+    if (!hasSpeechRecognition()) {
+        $("btn-write-mic").textContent = "No mic available";
+        return;
+    }
+
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const recognition = new SpeechRecognition();
+    recognition.lang = "en-US";
+    recognition.continuous = true;
+    recognition.interimResults = true;
+
+    _writeRecognition = recognition;
+    $("btn-write-mic").classList.add("listening");
+    $("btn-write-mic").textContent = "🔴 Stop";
+
+    let finalText = "";
+
+    recognition.onresult = (event) => {
+        let interim = "";
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+            if (event.results[i].isFinal) {
+                finalText += event.results[i][0].transcript;
+            } else {
+                interim += event.results[i][0].transcript;
+            }
+        }
+        // Append final text to textarea
+        if (finalText) {
+            const ta = $("write-textarea");
+            const existing = ta.value;
+            ta.value = existing + (existing && !existing.endsWith(" ") ? " " : "") + finalText.trim();
+            finalText = "";
+            _updateWriteWordCount();
+        }
+    };
+
+    recognition.onend = () => {
+        // Continuous mode can randomly stop — restart if still active
+        if (_writeRecognition === recognition) {
+            try { recognition.start(); } catch {
+                _writeRecognition = null;
+                $("btn-write-mic").classList.remove("listening");
+                $("btn-write-mic").textContent = "🎤 Dictate";
+            }
+        }
+    };
+
+    recognition.onerror = (event) => {
+        if (event.error === "no-speech") return; // Keep listening
+        _writeRecognition = null;
+        $("btn-write-mic").classList.remove("listening");
+        $("btn-write-mic").textContent = "🎤 Dictate";
+    };
+
+    recognition.start();
+});
+
+// Read back what was written
+$("btn-write-read-back").addEventListener("click", () => {
+    const text = $("write-textarea").value.trim();
+    if (text) speakNatural(text);
+});
+
+// Check writing for potential misspellings
+$("btn-write-check").addEventListener("click", () => {
+    const text = $("write-textarea").value.trim();
+    if (!text) return;
+
+    // Build a simple dictionary from all word lists
+    const dictionary = new Set();
+    for (const cat of Object.values(WORD_LISTS)) {
+        cat.words.forEach(w => dictionary.add(w.word.toLowerCase()));
+    }
+    // Add common words that won't be in spelling lists
+    const commonWords = ["the","a","an","is","are","was","were","be","been","being","have","has","had","do","does","did","will","would","could","should","may","might","shall","can","need","dare","ought","used","to","of","in","for","on","with","at","by","from","as","into","through","during","before","after","above","below","between","out","off","over","under","again","further","then","once","here","there","when","where","why","how","all","both","each","few","more","most","other","some","such","no","not","only","own","same","so","than","too","very","just","because","but","and","or","if","while","about","up","it","its","i","my","me","we","us","our","you","your","he","him","his","she","her","they","them","their","this","that","these","those","what","which","who","whom","whose","myself","himself","herself","itself","ourselves","themselves","yourself","am","like","go","going","went","gone","get","got","make","made","think","thought","know","knew","see","saw","come","came","take","took","want","find","found","give","gave","tell","told","say","said","said"];
+    commonWords.forEach(w => dictionary.add(w));
+
+    const words = text.split(/\s+/);
+    const flagged = [];
+    words.forEach(w => {
+        const clean = w.replace(/[^a-zA-Z']/g, "").toLowerCase();
+        if (clean.length > 2 && !dictionary.has(clean)) {
+            flagged.push(w);
+        }
+    });
+
+    const feedbackEl = $("write-feedback");
+    const wordsEl = $("write-feedback-words");
+    if (flagged.length > 0) {
+        feedbackEl.classList.remove("hidden");
+        wordsEl.innerHTML = flagged.map(w =>
+            `<span class="write-flagged-word">${w}</span>`
+        ).join("");
+    } else {
+        feedbackEl.classList.remove("hidden");
+        wordsEl.innerHTML = `<p class="settings-desc" style="color:var(--success);font-weight:600;">Everything looks good! Nice writing!</p>`;
+    }
+
+    // Show AI feedback button if key exists
+    if (AI.hasApiKey()) {
+        $("btn-write-ai-feedback").classList.remove("hidden");
+    }
+});
+
+// AI writing feedback
+$("btn-write-ai-feedback").addEventListener("click", async () => {
+    const text = $("write-textarea").value.trim();
+    if (!text) return;
+    const btn = $("btn-write-ai-feedback");
+    btn.textContent = "Thinking...";
+    btn.disabled = true;
+
+    const result = await AI._callClaude(
+        `You are Colton's writing coach. He is 13 and has dyslexia. He just wrote something and wants feedback. Be encouraging and specific. Point out what he did well first, then gently suggest 1-2 improvements. Keep it to 3-4 sentences. Talk directly to him. NEVER use markdown.`,
+        `Colton wrote: "${text}"\n\nGive him encouraging, specific feedback on his writing.`,
+        200
+    );
+
+    const wordsEl = $("write-feedback-words");
+    if (result) {
+        wordsEl.innerHTML += `<div class="write-ai-response">${result}</div>`;
+        speakNatural(result);
+    }
+    btn.textContent = "🤖 Get AI Feedback";
+    btn.disabled = false;
+});
+
+// Clear
+$("btn-write-clear").addEventListener("click", () => {
+    $("write-textarea").value = "";
+    $("write-feedback").classList.add("hidden");
+    $("btn-write-ai-feedback").classList.add("hidden");
+    _updateWriteWordCount();
+});
+
+// Back
+$("btn-write-back").addEventListener("click", () => {
+    if (_writeRecognition) { _writeRecognition.stop(); _writeRecognition = null; }
+    state.mode = "spell";
+    document.querySelectorAll(".mode-tab").forEach(t => t.classList.remove("active"));
+    document.querySelector('.mode-tab[data-mode="spell"]').classList.add("active");
+    showScreen("start");
+    renderCategories();
+});
+
+// ================================================================
+//  b/d/p/q TRAINING — Letter reversal recognition drill
+// ================================================================
+const BDPQ_LETTERS = ["b", "d", "p", "q"];
+const BDPQ_MNEMONICS = {
+    b: "b has its belly on the RIGHT →",
+    d: "d has its belly on the LEFT ← (like \"bed\")",
+    p: "p hangs DOWN with belly RIGHT →",
+    q: "q hangs DOWN with belly LEFT ← (like a \"q\"uail's tail)",
+};
+const BDPQ_WORDS = {
+    b: ["bed", "ball", "big", "book", "baby", "back", "bird", "box", "blue", "best"],
+    d: ["dog", "day", "door", "down", "dark", "deep", "dance", "draw", "done", "dig"],
+    p: ["pen", "play", "park", "part", "pull", "push", "past", "pick", "point", "page"],
+    q: ["queen", "quick", "quiet", "quiz", "quit", "quote", "quest", "quilt", "quake", "quite"],
+};
+
+function startBdpqTraining() {
+    // Build 20 rounds: mix of letter recognition and word context
+    const rounds = [];
+    // 12 letter recognition rounds
+    for (let i = 0; i < 12; i++) {
+        const letter = BDPQ_LETTERS[Math.floor(Math.random() * 4)];
+        rounds.push({ type: "letter", letter });
+    }
+    // 8 word rounds (which letter fits?)
+    for (let i = 0; i < 8; i++) {
+        const letter = BDPQ_LETTERS[Math.floor(Math.random() * 4)];
+        const words = BDPQ_WORDS[letter];
+        const word = words[Math.floor(Math.random() * words.length)];
+        rounds.push({ type: "word", letter, word });
+    }
+
+    state.bdpq = {
+        rounds: shuffle(rounds),
+        index: 0,
+        correct: 0,
+        streak: 0,
+        bestStreak: 0,
+    };
+
+    showScreen("bdpq");
+    showBdpqRound();
+}
+
+function showBdpqRound() {
+    const { rounds, index, streak } = state.bdpq;
+    if (index >= rounds.length) {
+        showBdpqResults();
+        return;
+    }
+
+    const round = rounds[index];
+    $("bdpq-counter").textContent = `${index + 1} / ${rounds.length}`;
+    $("bdpq-streak-val").textContent = streak;
+    $("bdpq-feedback").classList.add("hidden");
+
+    if (round.type === "letter") {
+        // Show a large letter, ask which one it is
+        $("bdpq-display").innerHTML = `<span class="bdpq-big-letter">${round.letter}</span>`;
+        $("bdpq-instruction").textContent = "Which letter is this?";
+        $("bdpq-mnemonic").innerHTML = "";
+    } else {
+        // Show a word with the target letter blanked out
+        const blanked = round.word.replace(new RegExp(round.letter, "i"), "___");
+        $("bdpq-display").innerHTML = `<span class="bdpq-word-display">${blanked}</span>`;
+        $("bdpq-instruction").textContent = `Which letter fills the blank in "${round.word}"?`;
+        $("bdpq-mnemonic").innerHTML = "";
+    }
+
+    // Render 4 choices
+    const choicesEl = $("bdpq-choices");
+    choicesEl.innerHTML = "";
+    BDPQ_LETTERS.forEach(letter => {
+        const btn = document.createElement("button");
+        btn.className = "btn bdpq-choice-btn";
+        btn.textContent = letter;
+        btn.addEventListener("click", () => handleBdpqAnswer(letter, round.letter, btn));
+        choicesEl.appendChild(btn);
+    });
+}
+
+function handleBdpqAnswer(chosen, correct, btn) {
+    const isCorrect = chosen === correct;
+    const feedbackEl = $("bdpq-feedback");
+    feedbackEl.classList.remove("hidden");
+
+    // Disable all buttons
+    document.querySelectorAll(".bdpq-choice-btn").forEach(b => {
+        b.disabled = true;
+        if (b.textContent === correct) b.classList.add("bdpq-correct");
+        if (b.textContent === chosen && !isCorrect) b.classList.add("bdpq-wrong");
+    });
+
+    if (isCorrect) {
+        state.bdpq.correct++;
+        state.bdpq.streak++;
+        if (state.bdpq.streak > state.bdpq.bestStreak) state.bdpq.bestStreak = state.bdpq.streak;
+        feedbackEl.innerHTML = `<span class="bdpq-fb-correct">Correct!</span>`;
+        Sound.correct();
+    } else {
+        state.bdpq.streak = 0;
+        feedbackEl.innerHTML = `<span class="bdpq-fb-wrong">That's "${chosen}" — the answer is "${correct}"</span><br><span class="bdpq-fb-hint">${BDPQ_MNEMONICS[correct]}</span>`;
+        Sound.incorrect();
+        // Speak the mnemonic
+        speak(BDPQ_MNEMONICS[correct], 0.8);
+    }
+
+    $("bdpq-streak-val").textContent = state.bdpq.streak;
+
+    // Auto-advance after delay
+    setTimeout(() => {
+        state.bdpq.index++;
+        showBdpqRound();
+    }, isCorrect ? 800 : 2500);
+}
+
+function showBdpqResults() {
+    showScreen("bdpqResult");
+    const { correct, rounds, bestStreak } = state.bdpq;
+    const pct = Math.round((correct / rounds.length) * 100);
+
+    let title = "Nice work!";
+    if (pct === 100) title = "Perfect score! You nailed every letter!";
+    else if (pct >= 80) title = "Great job — you really know your letters!";
+    else if (pct >= 60) title = "Good effort! Keep practicing!";
+    else title = "Those letters are tricky — let's keep working on them!";
+
+    $("bdpq-result-title").textContent = title;
+    $("bdpq-result-stats").innerHTML = `
+        <div class="result-stat">
+            <span class="result-stat-value">${correct}</span>
+            <span class="result-stat-label">Correct</span>
+        </div>
+        <div class="result-stat">
+            <span class="result-stat-value">${rounds.length}</span>
+            <span class="result-stat-label">Total</span>
+        </div>
+        <div class="result-stat">
+            <span class="result-stat-value">${pct}%</span>
+            <span class="result-stat-label">Accuracy</span>
+        </div>
+        <div class="result-stat">
+            <span class="result-stat-value">${bestStreak}</span>
+            <span class="result-stat-label">Best Streak</span>
+        </div>
+    `;
+}
+
+$("btn-bdpq-retry").addEventListener("click", () => startBdpqTraining());
+$("btn-bdpq-home").addEventListener("click", () => {
+    state.mode = "spell";
+    document.querySelectorAll(".mode-tab").forEach(t => t.classList.remove("active"));
+    document.querySelector('.mode-tab[data-mode="spell"]').classList.add("active");
+    showScreen("start");
+    renderCategories();
+});
+$("btn-bdpq-back").addEventListener("click", () => {
+    state.mode = "spell";
+    document.querySelectorAll(".mode-tab").forEach(t => t.classList.remove("active"));
+    document.querySelector('.mode-tab[data-mode="spell"]').classList.add("active");
     showScreen("start");
     renderCategories();
 });

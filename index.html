@@ -85,6 +85,8 @@
                     <button class="mode-tab" data-mode="morpheme">Build</button>
                     <button class="mode-tab" data-mode="dictation">Dictation</button>
                     <button class="mode-tab" data-mode="speed">Speed Drill</button>
+                    <button class="mode-tab" data-mode="write">Write</button>
+                    <button class="mode-tab" data-mode="bdpq">b/d/p/q</button>
                 </div>
 
                 <!-- AI Recommendation -->
@@ -911,6 +913,76 @@
                 </div>
                 <div class="dashboard-content" id="dashboard-content"></div>
             </div>
+
+            <!-- Write Mode Screen -->
+            <div id="write-screen" class="screen">
+                <div class="game-top">
+                    <button class="btn btn-back" id="btn-write-back" aria-label="Go back">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                    </button>
+                    <div class="category-label">✍️ Write Mode</div>
+                </div>
+
+                <div class="write-container">
+                    <p class="write-prompt" id="write-prompt">Write about anything you want, or pick a prompt below:</p>
+                    <div class="write-prompts" id="write-prompts"></div>
+
+                    <div class="write-area">
+                        <textarea id="write-textarea" class="write-textarea" placeholder="Start writing or tap the mic to dictate..." rows="8"></textarea>
+                        <div class="write-toolbar">
+                            <button class="btn btn-mic write-mic-btn" id="btn-write-mic">🎤 Dictate</button>
+                            <button class="btn btn-hear btn-sm" id="btn-write-read-back">🔊 Read It Back</button>
+                            <span class="write-word-count" id="write-word-count">0 words</span>
+                        </div>
+                    </div>
+
+                    <div class="write-feedback hidden" id="write-feedback">
+                        <h3 class="write-feedback-title">Words to Check</h3>
+                        <div class="write-feedback-words" id="write-feedback-words"></div>
+                    </div>
+
+                    <div class="write-actions">
+                        <button class="btn btn-primary" id="btn-write-check">🔍 Check My Writing</button>
+                        <button class="btn btn-primary hidden" id="btn-write-ai-feedback">🤖 Get AI Feedback</button>
+                        <button class="btn btn-back" id="btn-write-clear">Clear & Start Over</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- b/d/p/q Training Screen -->
+            <div id="bdpq-screen" class="screen">
+                <div class="game-top">
+                    <button class="btn btn-back" id="btn-bdpq-back" aria-label="Go back">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                    </button>
+                    <div class="category-label">🔤 b/d/p/q Training</div>
+                    <div class="word-counter" id="bdpq-counter">1 / 20</div>
+                </div>
+
+                <div class="bdpq-container">
+                    <div class="bdpq-mnemonic" id="bdpq-mnemonic"></div>
+                    <div class="bdpq-display" id="bdpq-display"></div>
+                    <div class="bdpq-instruction" id="bdpq-instruction">Which letter is this?</div>
+                    <div class="bdpq-choices" id="bdpq-choices"></div>
+                    <div class="bdpq-feedback hidden" id="bdpq-feedback"></div>
+                    <div class="bdpq-streak">
+                        <span id="bdpq-streak-label">Streak: </span>
+                        <span id="bdpq-streak-val">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- b/d/p/q Results Screen -->
+            <div id="bdpq-result-screen" class="screen">
+                <div class="result-card">
+                    <h2 class="result-title" id="bdpq-result-title">Training Complete!</h2>
+                    <div class="result-stats" id="bdpq-result-stats"></div>
+                    <div class="result-actions">
+                        <button class="btn btn-primary" id="btn-bdpq-retry">Play Again</button>
+                        <button class="btn btn-back" id="btn-bdpq-home">Back to Home</button>
+                    </div>
+                </div>
+            </div>
         </main>
     </div>
 
@@ -1007,6 +1079,11 @@
                         <div class="toggle-row">
                             <label class="toggle-label">
                                 <input type="checkbox" id="toggle-ruler"> Reading Ruler <span class="settings-hint">(dims other lines)</span>
+                            </label>
+                        </div>
+                        <div class="toggle-row">
+                            <label class="toggle-label">
+                                <input type="checkbox" id="toggle-hide-timer"> Hide Speed Drill Timer <span class="settings-hint">(reduces pressure)</span>
                             </label>
                         </div>
                     </div>
