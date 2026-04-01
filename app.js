@@ -127,6 +127,121 @@ function savePersistentStats() {
     updateStreakDisplay();
 }
 
+// ===== Display / Dyslexia Settings =====
+const DISPLAY_SETTINGS_KEY = "coltons_app_display";
+
+const BG_THEMES = {
+    default: { bg: "#fdf6e3", bgLight: "#f5eedc", surface: "#fff8ee", surfaceHover: "#f0e6d2", text: "#2c2416", textMuted: "#7a6e5d" },
+    white:   { bg: "#ffffff", bgLight: "#f5f5f5", surface: "#ffffff", surfaceHover: "#f0f0f0", text: "#1a1a1a", textMuted: "#666" },
+    blue:    { bg: "#e8f0fe", bgLight: "#d4e4fc", surface: "#f0f6ff", surfaceHover: "#dce8f8", text: "#1a2a3a", textMuted: "#5a6a7a" },
+    green:   { bg: "#e8f5e9", bgLight: "#c8e6c9", surface: "#f1f8f1", surfaceHover: "#dcedc8", text: "#1b2e1b", textMuted: "#4a6a4a" },
+    pink:    { bg: "#fce4ec", bgLight: "#f8bbd0", surface: "#fff0f5", surfaceHover: "#f5d5e0", text: "#2a1520", textMuted: "#7a5a6a" },
+    yellow:  { bg: "#fffde7", bgLight: "#fff9c4", surface: "#fffff0", surfaceHover: "#f5f0d0", text: "#2c2816", textMuted: "#7a7660" },
+    dark:    { bg: "#1a1a2e", bgLight: "#16213e", surface: "#0f3460", surfaceHover: "#1a3a6e", text: "#e0e0e0", textMuted: "#8899aa" },
+};
+
+function _loadDisplaySettings() {
+    try {
+        return JSON.parse(localStorage.getItem(DISPLAY_SETTINGS_KEY)) || {};
+    } catch { return {}; }
+}
+
+function _saveDisplaySettings(s) {
+    localStorage.setItem(DISPLAY_SETTINGS_KEY, JSON.stringify(s));
+}
+
+function applyDisplaySettings() {
+    const s = _loadDisplaySettings();
+    const root = document.documentElement;
+
+    // Font
+    const font = s.font || "Lexend";
+    if (font === "OpenDyslexic") root.style.setProperty("--font", "'OpenDyslexic', sans-serif");
+    else if (font === "system") root.style.setProperty("--font", "system-ui, -apple-system, sans-serif");
+    else root.style.setProperty("--font", "'Lexend', sans-serif");
+
+    // Font size
+    root.style.setProperty("--user-font-size", (s.fontSize || 18) + "px");
+
+    // Letter spacing
+    const ls = s.letterSpacing || 2;
+    root.style.setProperty("--user-letter-spacing", ls === 0 ? "normal" : (ls * 0.01) + "em");
+
+    // Word spacing
+    const ws = s.wordSpacing || 0;
+    root.style.setProperty("--user-word-spacing", ws === 0 ? "normal" : (ws * 0.03) + "em");
+
+    // Line height
+    const lh = s.lineHeight || 16;
+    root.style.setProperty("--user-line-height", (lh / 10).toFixed(1));
+
+    // Background theme
+    const theme = BG_THEMES[s.bgTheme || "default"];
+    if (theme) {
+        root.style.setProperty("--bg", theme.bg);
+        root.style.setProperty("--bg-light", theme.bgLight);
+        root.style.setProperty("--surface", theme.surface);
+        root.style.setProperty("--surface-hover", theme.surfaceHover);
+        root.style.setProperty("--text", theme.text);
+        root.style.setProperty("--text-muted", theme.textMuted);
+    }
+    document.body.classList.toggle("theme-dark", s.bgTheme === "dark");
+
+    // Bionic reading
+    document.body.classList.toggle("bionic-mode", !!s.bionic);
+
+    // Reading ruler
+    const ruler = $("reading-ruler");
+    if (ruler) {
+        if (s.ruler) {
+            ruler.classList.remove("hidden");
+        } else {
+            ruler.classList.add("hidden");
+        }
+    }
+}
+
+// Bionic text transform: bold first ~40% of each word
+function bionicTransform(text) {
+    if (!text) return text;
+    return text.replace(/\b([a-zA-Z]+)\b/g, (match) => {
+        const boldLen = Math.max(1, Math.ceil(match.length * 0.4));
+        return `<b>${match.substring(0, boldLen)}</b>${match.substring(boldLen)}`;
+    });
+}
+
+// Reading ruler — follows mouse/touch
+function _initReadingRuler() {
+    const WINDOW_HEIGHT = 60; // px — about 2-3 lines
+
+    function updateRuler(y) {
+        const top = Math.max(0, y - WINDOW_HEIGHT / 2);
+        const rulerTop = $("ruler-top");
+        const rulerWindow = $("ruler-window");
+        const rulerBottom = $("ruler-bottom");
+        if (!rulerTop) return;
+        rulerTop.style.height = top + "px";
+        rulerWindow.style.top = top + "px";
+        rulerWindow.style.height = WINDOW_HEIGHT + "px";
+        rulerBottom.style.top = (top + WINDOW_HEIGHT) + "px";
+        rulerBottom.style.height = `calc(100vh - ${top + WINDOW_HEIGHT}px)`;
+    }
+
+    document.addEventListener("mousemove", (e) => {
+        const s = _loadDisplaySettings();
+        if (s.ruler) updateRuler(e.clientY);
+    });
+
+    document.addEventListener("touchmove", (e) => {
+        const s = _loadDisplaySettings();
+        if (s.ruler && e.touches[0]) updateRuler(e.touches[0].clientY);
+    }, { passive: true });
+}
+
+// Initialize display settings on load
+applyDisplaySettings();
+_initReadingRuler();
+
 // ===== Speech Engine =====
 // Cloud TTS (OpenAI) when available, falls back to browser TTS.
 
@@ -1799,7 +1914,13 @@ function renderTeachSlide() {
 
     $("teach-slide-counter").textContent = `${state.teachSlideIndex + 1} / ${total}`;
     $("teach-slide-title").textContent = slide.title;
-    $("teach-slide-content").textContent = slide.content || "";
+    // Apply bionic reading to lesson content if enabled
+    const isBionicLesson = _loadDisplaySettings().bionic;
+    if (isBionicLesson && slide.content) {
+        $("teach-slide-content").innerHTML = bionicTransform(slide.content);
+    } else {
+        $("teach-slide-content").textContent = slide.content || "";
+    }
 
     // Clear interactive area
     const interEl = $("teach-slide-interactive");
@@ -3433,23 +3554,44 @@ if ($("btn-parent-gate-unlock")) {
 
 $("btn-settings").addEventListener("click", () => {
     $("settings-overlay").classList.remove("hidden");
-    // Pre-fill API key if exists
+
+    // --- Display settings ---
+    const ds = _loadDisplaySettings();
+    // Font
+    document.querySelectorAll(".font-pick").forEach(b => {
+        b.classList.toggle("active", (b.dataset.font === (ds.font || "Lexend")));
+    });
+    // Sliders
+    $("font-size-slider").value = ds.fontSize || 18;
+    $("font-size-val").textContent = (ds.fontSize || 18) + "px";
+    $("letter-spacing-slider").value = ds.letterSpacing || 2;
+    $("letter-spacing-val").textContent = (ds.letterSpacing || 2) === 0 ? "Normal" : "+" + ((ds.letterSpacing || 2) * 0.01).toFixed(2) + "em";
+    $("word-spacing-slider").value = ds.wordSpacing || 0;
+    $("word-spacing-val").textContent = (ds.wordSpacing || 0) === 0 ? "Normal" : "+" + ((ds.wordSpacing || 0) * 0.03).toFixed(2) + "em";
+    $("line-height-slider").value = ds.lineHeight || 16;
+    $("line-height-val").textContent = ((ds.lineHeight || 16) / 10).toFixed(1);
+    // Background
+    document.querySelectorAll(".bg-color-btn").forEach(b => {
+        b.classList.toggle("active", b.dataset.bg === (ds.bgTheme || "default"));
+    });
+    // Toggles
+    $("toggle-bionic").checked = !!ds.bionic;
+    $("toggle-ruler").checked = !!ds.ruler;
+
+    // --- Voice settings ---
     const key = AI.getApiKey();
     $("api-key-input").value = key;
     $("api-key-status").textContent = key ? "Key saved." : "";
     $("api-key-status").className = key ? "settings-hint success" : "settings-hint";
-    // Pre-fill OpenAI key
     const oKey = _getOpenAIKey();
     $("openai-key-input").value = oKey;
     $("openai-key-status").textContent = oKey ? "Key saved — human voice active!" : "";
     $("openai-key-status").className = oKey ? "settings-hint success" : "settings-hint";
     $("voice-select-field").style.display = oKey ? "block" : "none";
-    // Highlight active cloud voice
     const activeVoice = _getOpenAIVoice();
     document.querySelectorAll(".voice-pick").forEach(b => {
         b.classList.toggle("active", b.dataset.voice === activeVoice);
     });
-    // Populate browser voice dropdown
     _populateBrowserVoiceSelect();
     renderProfileStats();
     renderCustomWordList();
@@ -3512,6 +3654,88 @@ if ("speechSynthesis" in window) {
         _voicesLoaded = true;
     };
 }
+
+// ===== Display Settings Event Handlers =====
+
+// Font picker
+document.querySelectorAll(".font-pick").forEach(btn => {
+    btn.addEventListener("click", () => {
+        document.querySelectorAll(".font-pick").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        const s = _loadDisplaySettings();
+        s.font = btn.dataset.font;
+        _saveDisplaySettings(s);
+        applyDisplaySettings();
+    });
+});
+
+// Font size slider
+$("font-size-slider").addEventListener("input", (e) => {
+    const v = parseInt(e.target.value);
+    $("font-size-val").textContent = v + "px";
+    const s = _loadDisplaySettings();
+    s.fontSize = v;
+    _saveDisplaySettings(s);
+    applyDisplaySettings();
+});
+
+// Letter spacing slider
+$("letter-spacing-slider").addEventListener("input", (e) => {
+    const v = parseInt(e.target.value);
+    $("letter-spacing-val").textContent = v === 0 ? "Normal" : "+" + (v * 0.01).toFixed(2) + "em";
+    const s = _loadDisplaySettings();
+    s.letterSpacing = v;
+    _saveDisplaySettings(s);
+    applyDisplaySettings();
+});
+
+// Word spacing slider
+$("word-spacing-slider").addEventListener("input", (e) => {
+    const v = parseInt(e.target.value);
+    $("word-spacing-val").textContent = v === 0 ? "Normal" : "+" + (v * 0.03).toFixed(2) + "em";
+    const s = _loadDisplaySettings();
+    s.wordSpacing = v;
+    _saveDisplaySettings(s);
+    applyDisplaySettings();
+});
+
+// Line height slider
+$("line-height-slider").addEventListener("input", (e) => {
+    const v = parseInt(e.target.value);
+    $("line-height-val").textContent = (v / 10).toFixed(1);
+    const s = _loadDisplaySettings();
+    s.lineHeight = v;
+    _saveDisplaySettings(s);
+    applyDisplaySettings();
+});
+
+// Background color
+document.querySelectorAll(".bg-color-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+        document.querySelectorAll(".bg-color-btn").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        const s = _loadDisplaySettings();
+        s.bgTheme = btn.dataset.bg;
+        _saveDisplaySettings(s);
+        applyDisplaySettings();
+    });
+});
+
+// Bionic reading toggle
+$("toggle-bionic").addEventListener("change", (e) => {
+    const s = _loadDisplaySettings();
+    s.bionic = e.target.checked;
+    _saveDisplaySettings(s);
+    applyDisplaySettings();
+});
+
+// Reading ruler toggle
+$("toggle-ruler").addEventListener("change", (e) => {
+    const s = _loadDisplaySettings();
+    s.ruler = e.target.checked;
+    _saveDisplaySettings(s);
+    applyDisplaySettings();
+});
 
 // --- OpenAI Voice Key ---
 $("btn-save-openai-key").addEventListener("click", () => {
@@ -4246,11 +4470,16 @@ function startReading(name, passageIndex) {
 function renderPassageText() {
     const container = $("passage-text");
     container.innerHTML = "";
+    const isBionic = _loadDisplaySettings().bionic;
     state.currentPassage.sentences.forEach((sentence, i) => {
         const span = document.createElement("span");
         span.className = "passage-sentence";
         span.dataset.index = i;
-        span.textContent = sentence + " ";
+        if (isBionic) {
+            span.innerHTML = bionicTransform(sentence) + " ";
+        } else {
+            span.textContent = sentence + " ";
+        }
         container.appendChild(span);
     });
 }
@@ -4275,8 +4504,13 @@ function loadSentence() {
         }
     });
 
-    // Show focused sentence
-    $("read-current-sentence").textContent = sentence;
+    // Show focused sentence (with bionic if enabled)
+    const isBionic = _loadDisplaySettings().bionic;
+    if (isBionic) {
+        $("read-current-sentence").innerHTML = bionicTransform(sentence);
+    } else {
+        $("read-current-sentence").textContent = sentence;
+    }
 
     // Reset UI
     $("read-word-feedback").classList.add("hidden");

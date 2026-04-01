@@ -950,6 +950,68 @@
             </div>
 
             <div class="modal-body">
+                <!-- Display / Dyslexia Settings -->
+                <div class="settings-section">
+                    <h3 class="settings-section-title">Display</h3>
+                    <p class="settings-desc">Adjust how text looks. Everyone's eyes are different — find what's most comfortable for you.</p>
+
+                    <div class="settings-field">
+                        <label class="settings-label">Font</label>
+                        <div class="voice-option-row">
+                            <button class="btn btn-sm font-pick active" data-font="Lexend">Lexend</button>
+                            <button class="btn btn-sm font-pick" data-font="OpenDyslexic">OpenDyslexic</button>
+                            <button class="btn btn-sm font-pick" data-font="system">System Sans</button>
+                        </div>
+                    </div>
+
+                    <div class="settings-field">
+                        <label class="settings-label">Text Size: <span id="font-size-val">18px</span></label>
+                        <input type="range" id="font-size-slider" class="settings-slider" min="14" max="28" step="1" value="18">
+                    </div>
+
+                    <div class="settings-field">
+                        <label class="settings-label">Letter Spacing: <span id="letter-spacing-val">Normal</span></label>
+                        <input type="range" id="letter-spacing-slider" class="settings-slider" min="0" max="10" step="1" value="2">
+                    </div>
+
+                    <div class="settings-field">
+                        <label class="settings-label">Word Spacing: <span id="word-spacing-val">Normal</span></label>
+                        <input type="range" id="word-spacing-slider" class="settings-slider" min="0" max="10" step="1" value="0">
+                    </div>
+
+                    <div class="settings-field">
+                        <label class="settings-label">Line Height: <span id="line-height-val">1.6</span></label>
+                        <input type="range" id="line-height-slider" class="settings-slider" min="14" max="28" step="1" value="16">
+                    </div>
+
+                    <div class="settings-field">
+                        <label class="settings-label">Background Color</label>
+                        <div class="bg-color-row">
+                            <button class="bg-color-btn active" data-bg="default" title="Cream (default)" style="background:#fdf6e3;"></button>
+                            <button class="bg-color-btn" data-bg="white" title="White" style="background:#ffffff;"></button>
+                            <button class="bg-color-btn" data-bg="blue" title="Soft Blue" style="background:#e8f0fe;"></button>
+                            <button class="bg-color-btn" data-bg="green" title="Soft Green" style="background:#e8f5e9;"></button>
+                            <button class="bg-color-btn" data-bg="pink" title="Soft Pink" style="background:#fce4ec;"></button>
+                            <button class="bg-color-btn" data-bg="yellow" title="Soft Yellow" style="background:#fffde7;"></button>
+                            <button class="bg-color-btn" data-bg="dark" title="Dark Mode" style="background:#1a1a2e; border-color:#333;"></button>
+                        </div>
+                    </div>
+
+                    <div class="settings-field">
+                        <label class="settings-label">Reading Aids</label>
+                        <div class="toggle-row">
+                            <label class="toggle-label">
+                                <input type="checkbox" id="toggle-bionic"> Bionic Reading <span class="settings-hint">(bolds first part of words)</span>
+                            </label>
+                        </div>
+                        <div class="toggle-row">
+                            <label class="toggle-label">
+                                <input type="checkbox" id="toggle-ruler"> Reading Ruler <span class="settings-hint">(dims other lines)</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Voice Settings -->
                 <div class="settings-section">
                     <h3 class="settings-section-title">Voice</h3>
@@ -1175,5 +1237,12 @@
             navigator.serviceWorker.register('sw.js').catch(() => {});
         }
     </script>
+
+    <!-- Reading Ruler Overlay (hidden by default) -->
+    <div class="reading-ruler hidden" id="reading-ruler">
+        <div class="reading-ruler-top" id="ruler-top"></div>
+        <div class="reading-ruler-window" id="ruler-window"></div>
+        <div class="reading-ruler-bottom" id="ruler-bottom"></div>
+    </div>
 </body>
 </html>

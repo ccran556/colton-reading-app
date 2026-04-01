@@ -146,10 +146,15 @@
     --font: 'Lexend', sans-serif;
     --letter-size: 56px;
     --transition: 0.2s ease;
+    /* Dyslexia display settings (overridden by JS) */
+    --user-font-size: 18px;
+    --user-letter-spacing: 0.02em;
+    --user-word-spacing: normal;
+    --user-line-height: 1.6;
 }
 
 html {
-    font-size: 18px;
+    font-size: var(--user-font-size);
 }
 
 body {
@@ -157,9 +162,64 @@ body {
     background: var(--bg);
     color: var(--text);
     min-height: 100vh;
-    line-height: 1.6;
-    letter-spacing: 0.02em;
+    line-height: var(--user-line-height);
+    letter-spacing: var(--user-letter-spacing);
+    word-spacing: var(--user-word-spacing);
     -webkit-font-smoothing: antialiased;
+}
+
+/* OpenDyslexic font — loaded on demand */
+@font-face {
+    font-family: 'OpenDyslexic';
+    src: url('https://cdn.jsdelivr.net/npm/open-dyslexic@1.0.3/woff/OpenDyslexic-Regular.woff') format('woff');
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+}
+@font-face {
+    font-family: 'OpenDyslexic';
+    src: url('https://cdn.jsdelivr.net/npm/open-dyslexic@1.0.3/woff/OpenDyslexic-Bold.woff') format('woff');
+    font-weight: 700;
+    font-style: normal;
+    font-display: swap;
+}
+
+/* Bionic reading mode — bold first part of words */
+.bionic-mode .passage-text,
+.bionic-mode .teach-slide-content,
+.bionic-mode .read-current-sentence,
+.bionic-mode .dictation-sentence {
+    /* Applied via JS: wraps words with <b> on first N chars */
+}
+
+/* Reading ruler overlay */
+.reading-ruler {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    pointer-events: none;
+    z-index: 9998;
+    transition: opacity 0.3s ease;
+}
+.reading-ruler-top,
+.reading-ruler-bottom {
+    position: absolute;
+    left: 0;
+    right: 0;
+    background: rgba(0, 0, 0, 0.55);
+    transition: all 0.15s ease;
+}
+.reading-ruler-top { top: 0; }
+.reading-ruler-bottom { bottom: 0; }
+.reading-ruler-window {
+    position: absolute;
+    left: 0;
+    right: 0;
+    border-top: 2px solid var(--accent);
+    border-bottom: 2px solid var(--accent);
+    pointer-events: none;
 }
 
 /* ===== App Shell ===== */
@@ -1493,6 +1553,106 @@ select.settings-input {
     cursor: pointer;
     min-width: 0;
 }
+
+/* Settings sliders */
+.settings-slider {
+    width: 100%;
+    height: 6px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: rgba(0,0,0,0.1);
+    border-radius: 3px;
+    outline: none;
+    cursor: pointer;
+}
+.settings-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--primary, var(--accent));
+    cursor: pointer;
+    border: 2px solid #fff;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+}
+.settings-slider::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--primary, var(--accent));
+    cursor: pointer;
+    border: 2px solid #fff;
+}
+
+/* Background color picker */
+.bg-color-row {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+.bg-color-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 2px solid rgba(0,0,0,0.15);
+    cursor: pointer;
+    transition: all var(--transition);
+    position: relative;
+}
+.bg-color-btn:hover { transform: scale(1.1); }
+.bg-color-btn.active {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+}
+.bg-color-btn.active::after {
+    content: "✓";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 14px;
+    font-weight: bold;
+}
+
+/* Font picker reuses voice-pick styles */
+.font-pick { font-size: 0.78rem !important; }
+.font-pick[data-font="OpenDyslexic"] { font-family: 'OpenDyslexic', sans-serif; }
+.font-pick[data-font="system"] { font-family: system-ui, sans-serif; }
+.font-pick.active {
+    background: var(--primary, var(--accent));
+    color: #fff;
+    border-color: var(--primary, var(--accent));
+}
+
+/* Toggle rows */
+.toggle-row {
+    padding: 0.3rem 0;
+}
+.toggle-label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+    cursor: pointer;
+    color: var(--text);
+}
+.toggle-label input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--accent);
+    cursor: pointer;
+}
+
+/* Dark mode theme */
+body.theme-dark {
+    --bg: #1a1a2e;
+    --bg-light: #16213e;
+    --surface: #0f3460;
+    --surface-hover: #1a3a6e;
+    --text: #e0e0e0;
+    --text-muted: #8899aa;
+}
+body.theme-dark .bg-color-btn.active::after { color: #fff; }
 
 .settings-input:focus {
     border-color: var(--accent);
