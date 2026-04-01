@@ -509,6 +509,176 @@ const SRS = {
         return longest;
     },
 
+    // ===== Adaptive Learning Engine =====
+    // Maps error patterns from AI profile → relevant lessons
+    PATTERN_TO_LESSONS: {
+        "double_letters":       ["double-consonants", "double-or-not", "floss-rule"],
+        "silent_letters":       ["silent-e", "silent-letters"],
+        "ie_ei_confusion":      ["i-before-e"],
+        "tion_sion_confusion":  ["suffixes-tion-sion"],
+        "able_ible_confusion":  ["suffixes-able-ible"],
+        "letter_swap":          ["silent-e", "vowel-teams", "magic-e-patterns"],
+        "missing_letters":      ["silent-letters", "silent-e", "r-controlled"],
+        "extra_letters":        ["double-consonants", "double-or-not"],
+        "general_misspelling":  ["confused-words"],
+    },
+
+    // Build a "Trouble Words" list from all struggle sources
+    getTroubleWords(maxCount = 15) {
+        const seen = new Set();
+        const trouble = [];
+
+        // Source 1: SRS struggling words (most reliable — actual spelling attempts)
+        const srsStruggling = this.getStrugglingWords(30);
+        srsStruggling.forEach(w => {
+            if (!seen.has(w.word.toLowerCase())) {
+                seen.add(w.word.toLowerCase());
+                trouble.push({
+                    ...w,
+                    source: "spelling",
+                    severity: w._difficulty || 1,
+                });
+            }
+        });
+
+        // Source 2: Reading struggled words (from recent reading sessions)
+        const readingStats = this.getReadingStats();
+        const recentSessions = readingStats.sessions.slice(-10); // Last 10 sessions
+        const readingStruggles = {};
+        recentSessions.forEach(session => {
+            (session.struggledWords || []).forEach(word => {
+                const lw = word.toLowerCase();
+                readingStruggles[lw] = (readingStruggles[lw] || 0) + 1;
+            });
+        });
+        // Sort by frequency — words struggled with across multiple sessions are worse
+        Object.entries(readingStruggles)
+            .sort((a, b) => b[1] - a[1])
+            .forEach(([word, count]) => {
+                if (!seen.has(word)) {
+                    seen.add(word);
+                    // Find this word in WORD_LISTS or create a basic entry
+                    const wordData = this._findWordInAnyCategory(word);
+                    if (wordData) {
+                        trouble.push({
+                            ...wordData,
+                            source: "reading",
+                            severity: count,
+                        });
+                    }
+                }
+            });
+
+        // Source 3: AI profile difficult words
+        try {
+            const profile = JSON.parse(localStorage.getItem("coltons_app_learning_profile")) || {};
+            (profile.difficultWords || []).forEach(word => {
+                const lw = word.toLowerCase();
+                if (!seen.has(lw)) {
+                    seen.add(lw);
+                    const wordData = this._findWordInAnyCategory(lw);
+                    if (wordData) {
+                        trouble.push({
+                            ...wordData,
+                            source: "ai",
+                            severity: 0.5,
+                        });
+                    }
+                }
+            });
+        } catch {}
+
+        // Sort by severity (highest first)
+        trouble.sort((a, b) => b.severity - a.severity);
+        return trouble.slice(0, maxCount);
+    },
+
+    // Find a word in any WORD_LISTS category
+    _findWordInAnyCategory(word) {
+        const lw = word.toLowerCase();
+        for (const [catName, catData] of Object.entries(WORD_LISTS)) {
+            const found = catData.words.find(w => w.word.toLowerCase() === lw);
+            if (found) return { ...found, _fromCategory: catName };
+        }
+        // Not in word lists — create a basic entry so it can still be practiced
+        return {
+            word: word,
+            hint: "A word you've been working on",
+            syllables: [word],
+            sentence: "",
+            _fromCategory: "Trouble Words",
+        };
+    },
+
+    // Get recommended lessons based on error patterns
+    getRecommendedLessons(maxCount = 3) {
+        try {
+            const profile = JSON.parse(localStorage.getItem("coltons_app_learning_profile")) || {};
+            const patterns = profile.errorPatterns || {};
+
+            // Score each lesson based on how many matching error patterns exist
+            const lessonScores = {};
+            for (const [pattern, data] of Object.entries(patterns)) {
+                const matchingLessons = this.PATTERN_TO_LESSONS[pattern] || [];
+                matchingLessons.forEach(lessonId => {
+                    lessonScores[lessonId] = (lessonScores[lessonId] || 0) + data.count;
+                });
+            }
+
+            // Also check reading struggles for pattern clues
+            const readingStats = this.getReadingStats();
+            const recentStruggles = [];
+            readingStats.sessions.slice(-10).forEach(s => {
+                (s.struggledWords || []).forEach(w => recentStruggles.push(w.toLowerCase()));
+            });
+
+            // Boost lessons if reading struggles match lesson content
+            if (typeof LESSONS !== "undefined") {
+                LESSONS.forEach(lesson => {
+                    const lessonWords = (lesson.words || []).map(w => w.word.toLowerCase());
+                    const overlap = recentStruggles.filter(w => lessonWords.includes(w)).length;
+                    if (overlap > 0) {
+                        lessonScores[lesson.id] = (lessonScores[lesson.id] || 0) + overlap * 2;
+                    }
+                });
+            }
+
+            // Check which lessons are already completed
+            let completed = {};
+            try {
+                completed = JSON.parse(localStorage.getItem("coltons_app_lessons")) || {};
+            } catch {}
+
+            // Sort by score, filter out completed, return top N
+            return Object.entries(lessonScores)
+                .filter(([id]) => !completed[id])
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, maxCount)
+                .map(([id, score]) => ({ lessonId: id, score }));
+        } catch {
+            return [];
+        }
+    },
+
+    // Get a summary of weak patterns for display
+    getWeakPatterns() {
+        try {
+            const profile = JSON.parse(localStorage.getItem("coltons_app_learning_profile")) || {};
+            const patterns = profile.errorPatterns || {};
+            return Object.entries(patterns)
+                .sort((a, b) => b[1].count - a[1].count)
+                .slice(0, 5)
+                .map(([type, data]) => ({
+                    type,
+                    label: type.replace(/_/g, " "),
+                    count: data.count,
+                    examples: data.examples.slice(-3),
+                }));
+        } catch {
+            return [];
+        }
+    },
+
     // ===== Full Reset — clears everything =====
     resetEverything() {
         // SRS & stats

@@ -1095,6 +1095,63 @@ body {
     width: fit-content;
 }
 
+/* Trouble Words card */
+.trouble-card {
+    border: 2px solid #d63031 !important;
+    animation: trouble-pulse 2s ease-in-out infinite;
+}
+@keyframes trouble-pulse {
+    0%, 100% { box-shadow: 0 2px 12px rgba(214, 48, 49, 0.15); }
+    50% { box-shadow: 0 2px 20px rgba(214, 48, 49, 0.35); }
+}
+.badge-trouble {
+    color: #d63031 !important;
+    background: rgba(214, 48, 49, 0.12) !important;
+    font-weight: 600;
+}
+
+/* Recommendation banner */
+.rec-banner {
+    grid-column: 1 / -1;
+    background: linear-gradient(135deg, rgba(91, 75, 181, 0.08), rgba(108, 92, 231, 0.12));
+    border: 1px solid rgba(91, 75, 181, 0.2);
+    border-radius: var(--radius);
+    padding: 0.8rem 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+.rec-banner-text {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+    color: var(--text);
+    line-height: 1.4;
+}
+.rec-banner-icon {
+    font-size: 1.2rem;
+    flex-shrink: 0;
+}
+.rec-banner-lessons {
+    display: flex;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+}
+.rec-lesson-btn {
+    background: var(--primary) !important;
+    color: #fff !important;
+    font-size: 0.78rem !important;
+    padding: 0.35rem 0.7rem !important;
+    border-radius: var(--radius-sm) !important;
+    border: none !important;
+    cursor: pointer;
+    transition: transform var(--transition);
+}
+.rec-lesson-btn:hover {
+    transform: scale(1.04);
+}
+
 /* ===== Lesson Screen ===== */
 .lesson-section {
     display: flex;

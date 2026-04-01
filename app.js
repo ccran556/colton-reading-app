@@ -817,6 +817,67 @@ function renderCategories() {
 
     title.textContent = "Choose a Category";
 
+    // --- Trouble Words card (adaptive — always first if there are trouble words) ---
+    const troubleWords = SRS.getTroubleWords(15);
+    if (troubleWords.length >= 3) {
+        const tCard = document.createElement("button");
+        tCard.className = "category-card trouble-card";
+        tCard.style.setProperty("--card-color", "#d63031");
+        tCard.innerHTML = `
+            <span class="category-icon">🎯</span>
+            <span class="category-name">Trouble Words</span>
+            <span class="category-count">${troubleWords.length} words to review</span>
+            <span class="category-badge badge-trouble">Personalized</span>
+        `;
+        tCard.addEventListener("click", () => {
+            if (state.mode === "flash") {
+                startFlashcards("__trouble__");
+            } else if (state.mode === "scramble") {
+                startScramble("__trouble__");
+            } else {
+                startTroubleWords();
+            }
+        });
+        grid.appendChild(tCard);
+    }
+
+    // --- Recommended Lessons banner ---
+    const recLessons = SRS.getRecommendedLessons(2);
+    if (recLessons.length > 0 && state.mode === "spell") {
+        const weakPatterns = SRS.getWeakPatterns();
+        if (weakPatterns.length > 0) {
+            const recBanner = document.createElement("div");
+            recBanner.className = "rec-banner";
+            const patternText = weakPatterns.slice(0, 2).map(p => p.label).join(" & ");
+            const lessonLinks = recLessons.map(r => {
+                const lesson = typeof LESSONS !== "undefined" ? LESSONS.find(l => l.id === r.lessonId) : null;
+                return lesson ? `<button class="btn btn-sm rec-lesson-btn" data-lesson-id="${r.lessonId}">${lesson.icon || "📖"} ${lesson.title}</button>` : "";
+            }).filter(h => h).join("");
+
+            recBanner.innerHTML = `
+                <div class="rec-banner-text">
+                    <span class="rec-banner-icon">💡</span>
+                    <span>You've been struggling with <strong>${patternText}</strong>. Try these lessons:</span>
+                </div>
+                <div class="rec-banner-lessons">${lessonLinks}</div>
+            `;
+            grid.appendChild(recBanner);
+
+            // Attach listeners
+            recBanner.querySelectorAll(".rec-lesson-btn").forEach(btn => {
+                btn.addEventListener("click", () => {
+                    const lessonId = btn.dataset.lessonId;
+                    const lesson = LESSONS.find(l => l.id === lessonId);
+                    if (lesson) {
+                        state.mode = "lessons";
+                        startLesson(lesson);
+                    }
+                });
+            });
+        }
+    }
+
+    // --- Regular categories ---
     Object.entries(WORD_LISTS).forEach(([name, data]) => {
         const card = document.createElement("button");
         card.className = "category-card";
@@ -852,6 +913,23 @@ function renderCategories() {
 // ================================================================
 //  SPELL MODE (existing word builder)
 // ================================================================
+// --- Trouble Words (adaptive practice) ---
+function startTroubleWords() {
+    const troubleWords = SRS.getTroubleWords(12);
+    if (troubleWords.length === 0) return;
+
+    state.isReviewMode = false;
+    state.currentCategory = "Trouble Words";
+    state.words = shuffle(troubleWords);
+    state.wordIndex = 0;
+    state.wordsCorrect = 0;
+    state.wordsAttempted = 0;
+    state.wordResults = [];
+    showScreen("game");
+    $("category-label").textContent = "🎯 Trouble Words";
+    loadWord();
+}
+
 function startCategory(name) {
     state.isReviewMode = false;
     state.currentCategory = name;
@@ -4647,14 +4725,52 @@ function showReadingResults() {
     // Feed struggled words into SRS for spelling review
     state.readingStruggledWords.forEach(sw => {
         // Try to find this word in any WORD_LISTS category
+        let found = false;
         for (const [catName, catData] of Object.entries(WORD_LISTS)) {
             const wordObj = catData.words.find(w => w.word.toLowerCase() === sw.word.toLowerCase());
             if (wordObj) {
-                SRS.recordResult(catName, wordObj, false, 3); // Mark as failed so it shows in review
+                SRS.recordResult(catName, wordObj, false, 3);
+                found = true;
                 break;
             }
         }
+        // If not in any word list, record under "Trouble Words" so it still gets tracked
+        if (!found) {
+            SRS.recordResult("Trouble Words", {
+                word: sw.word,
+                hint: "A word from reading practice",
+                syllables: [sw.word],
+            }, false, 3);
+        }
     });
+
+    // Show "Practice These Words" button if there are struggled words
+    const practiceBtn = $("btn-read-practice-words");
+    if (practiceBtn) {
+        if (state.readingStruggledWords.length >= 2) {
+            practiceBtn.classList.remove("hidden");
+            practiceBtn.onclick = () => {
+                // Build practice set from struggled words
+                const words = state.readingStruggledWords.map(sw => {
+                    return SRS._findWordInAnyCategory(sw.word.toLowerCase());
+                }).filter(w => w);
+                if (words.length > 0) {
+                    state.isReviewMode = false;
+                    state.currentCategory = "Trouble Words";
+                    state.words = shuffle(words);
+                    state.wordIndex = 0;
+                    state.wordsCorrect = 0;
+                    state.wordsAttempted = 0;
+                    state.wordResults = [];
+                    showScreen("game");
+                    $("category-label").textContent = "🎯 Practice Struggled Words";
+                    loadWord();
+                }
+            };
+        } else {
+            practiceBtn.classList.add("hidden");
+        }
+    }
 
     // Book-aware button labels
     const category = PASSAGE_LISTS[state.currentCategory];
