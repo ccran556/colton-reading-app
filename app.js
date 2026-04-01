@@ -9,6 +9,7 @@
 
 // ===== State =====
 const state = {
+    section: "practice",    // "practice", "learn", "skills", "create"
     mode: "spell",          // "spell", "flash", or "lessons"
     currentCategory: null,
     isReviewMode: false,     // true when playing from review queue
@@ -737,8 +738,197 @@ function showScreen(name) {
 }
 
 // ================================================================
-//  MODE TABS
+//  BOTTOM NAVIGATION + SUB-MODE CARDS
 // ================================================================
+const SECTION_MODES = {
+    practice: [
+        { mode: "spell",    icon: "🎯", name: "Spell It",      desc: "Drag letters to spell words" },
+        { mode: "flash",    icon: "🃏", name: "Flashcards",    desc: "Flip and rate your knowledge" },
+        { mode: "scramble", icon: "🔀", name: "Unscramble",    desc: "Put jumbled letters in order" },
+        { mode: "speed",    icon: "⚡", name: "Speed Round",   desc: "How fast can you recognize words?" },
+    ],
+    learn: [
+        { mode: "lessons",   icon: "📚", name: "Lessons",       desc: "Learn spelling rules step by step" },
+        { mode: "read",      icon: "🎤", name: "Read Aloud",    desc: "Practice reading out loud" },
+        { mode: "dictation", icon: "👂", name: "Listen & Type", desc: "Hear a sentence, type it out" },
+    ],
+    skills: [
+        { mode: "phoneme",  icon: "🔊", name: "Sound Match",   desc: "Match sounds to spellings" },
+        { mode: "morpheme", icon: "🧩", name: "Word Builder",  desc: "Build words from parts" },
+        { mode: "bdpq",     icon: "🔤", name: "Letter Flip",   desc: "Train b/d/p/q recognition" },
+    ],
+    create: [
+        { mode: "write", icon: "✏️", name: "Free Write", desc: "Write anything — use your voice or keyboard" },
+    ],
+};
+
+// Bottom nav click handlers
+document.querySelectorAll(".bottom-nav-item").forEach(btn => {
+    btn.addEventListener("click", () => {
+        document.querySelectorAll(".bottom-nav-item").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        state.section = btn.dataset.section;
+
+        // If only one mode in this section, go directly
+        const modes = SECTION_MODES[state.section];
+        if (modes && modes.length === 1) {
+            state.mode = modes[0].mode;
+            renderCategories();
+        } else {
+            // Show the home screen with sub-mode cards
+            state.mode = "spell"; // reset
+            showScreen("start");
+            renderHomeScreen();
+        }
+    });
+});
+
+// Render the home screen: greeting + priority card + submode cards
+function renderHomeScreen() {
+    // Greeting
+    const hour = new Date().getHours();
+    let greeting = "Hey Colton";
+    if (hour < 12) greeting = "Good morning, Colton";
+    else if (hour < 17) greeting = "Hey Colton";
+    else greeting = "Evening, Colton";
+
+    const streak = SRS.getDailyStreak();
+    let sub = "What do you want to work on?";
+    if (streak >= 3) sub = `${streak}-day streak! Keep it going 🔥`;
+    else if (SRS.getDueCount() > 0) sub = `You've got ${SRS.getDueCount()} words ready for review`;
+
+    $("greeting-text").textContent = greeting;
+    $("greeting-sub").textContent = sub;
+
+    // Priority card
+    renderPriorityCard();
+
+    // Sub-mode cards
+    renderSubModeCards();
+
+    // Hide category grid until a mode is selected
+    $("category-grid").innerHTML = "";
+    const catTitle = $("category-title");
+    if (catTitle) catTitle.style.display = "none";
+
+    // Legacy: still call these for data loading
+    loadAiRecommendation();
+    renderDailyChallenge();
+
+    // Show home elements, hide category elements
+    $("home-greeting").style.display = "";
+    $("submode-grid").style.display = "";
+}
+
+// Universal "go home" helper — use from all back buttons
+function goHome() {
+    state.mode = "spell";
+    state.section = "practice";
+    document.querySelectorAll(".mode-tab").forEach(t => t.classList.remove("active"));
+    const spellTab = document.querySelector('.mode-tab[data-mode="spell"]');
+    if (spellTab) spellTab.classList.add("active");
+    // Reset bottom nav active state
+    document.querySelectorAll(".bottom-nav-item").forEach(b => b.classList.remove("active"));
+    const practiceBtn = document.querySelector('.bottom-nav-item[data-section="practice"]');
+    if (practiceBtn) practiceBtn.classList.add("active");
+    showScreen("start");
+    updateReviewBanner();
+    renderHomeScreen();
+}
+
+function renderPriorityCard() {
+    const card = $("priority-card");
+    const dueCount = SRS.getDueCount();
+    const troubleWords = SRS.getTroubleWords(5);
+
+    if (dueCount > 0) {
+        card.classList.remove("hidden");
+        card.innerHTML = `
+            <span class="priority-card-icon">🔄</span>
+            <div class="priority-card-body">
+                <span class="priority-card-title">${dueCount} words ready for review</span>
+                <span class="priority-card-sub">Keep your streak alive — quick review session</span>
+            </div>
+            <span class="priority-card-action">Let's go →</span>
+        `;
+        card.onclick = () => {
+            $("btn-start-review").click();
+        };
+    } else if (troubleWords.length >= 3) {
+        card.classList.remove("hidden");
+        card.innerHTML = `
+            <span class="priority-card-icon">🎯</span>
+            <div class="priority-card-body">
+                <span class="priority-card-title">${troubleWords.length} trouble words to practice</span>
+                <span class="priority-card-sub">Words you've been working on</span>
+            </div>
+            <span class="priority-card-action">Practice →</span>
+        `;
+        card.onclick = () => {
+            startTroubleWords();
+        };
+    } else {
+        // Check daily challenge
+        try {
+            const dailyData = JSON.parse(localStorage.getItem("coltons_app_daily")) || {};
+            const today = new Date().toISOString().split("T")[0];
+            if (!dailyData.completedDate || dailyData.completedDate !== today) {
+                card.classList.remove("hidden");
+                card.innerHTML = `
+                    <span class="priority-card-icon">📅</span>
+                    <div class="priority-card-body">
+                        <span class="priority-card-title">Daily Challenge</span>
+                        <span class="priority-card-sub">One word a day keeps your skills sharp</span>
+                    </div>
+                    <span class="priority-card-action">Try it →</span>
+                `;
+                card.onclick = () => {
+                    $("btn-daily-start").click();
+                };
+                return;
+            }
+        } catch {}
+        card.classList.add("hidden");
+    }
+}
+
+function renderSubModeCards() {
+    const grid = $("submode-grid");
+    grid.innerHTML = "";
+    const modes = SECTION_MODES[state.section] || [];
+
+    modes.forEach(m => {
+        const card = document.createElement("button");
+        card.className = "submode-card";
+        card.innerHTML = `
+            <span class="submode-icon">${m.icon}</span>
+            <span class="submode-name">${m.name}</span>
+            <span class="submode-desc">${m.desc}</span>
+        `;
+        card.addEventListener("click", () => {
+            state.mode = m.mode;
+            // Update hidden mode tabs for compatibility
+            document.querySelectorAll(".mode-tab").forEach(t => t.classList.remove("active"));
+            const matchTab = document.querySelector(`.mode-tab[data-mode="${m.mode}"]`);
+            if (matchTab) matchTab.classList.add("active");
+            renderCategories();
+        });
+        grid.appendChild(card);
+    });
+}
+
+// Show/hide bottom nav based on screen
+const _origShowScreen = showScreen;
+showScreen = function(name) {
+    _origShowScreen(name);
+    const nav = $("bottom-nav");
+    if (nav) {
+        // Show bottom nav only on start screen
+        nav.style.display = (name === "start") ? "flex" : "none";
+    }
+};
+
+// Legacy mode-tab handler (still needed for back buttons that set mode tabs)
 document.querySelectorAll(".mode-tab").forEach((tab) => {
     tab.addEventListener("click", () => {
         document.querySelectorAll(".mode-tab").forEach((t) => t.classList.remove("active"));
@@ -796,6 +986,14 @@ function renderCategories() {
     const grid = $("category-grid");
     const title = document.querySelector(".screen-title");
     grid.innerHTML = "";
+
+    // Hide home elements, show category elements
+    if ($("home-greeting")) $("home-greeting").style.display = "none";
+    if ($("submode-grid")) $("submode-grid").style.display = "none";
+    if ($("priority-card")) $("priority-card").classList.add("hidden");
+    if (title) title.style.display = "";
+    const catTitle = $("category-title");
+    if (catTitle) catTitle.style.display = "";
 
     // Refresh AI recommendation when returning to home screen
     loadAiRecommendation();
@@ -1502,9 +1700,7 @@ $("btn-hear").addEventListener("click", () => {
 // ===== Back Button (Spell Mode) =====
 $("btn-back").addEventListener("click", () => {
     savePersistentStats();
-    showScreen("start");
-    updateReviewBanner();
-    renderCategories();
+    goHome();
 });
 
 // ================================================================
@@ -1785,9 +1981,7 @@ $("btn-flash-continue").addEventListener("click", () => {
 // Flashcard back button
 $("btn-flash-back").addEventListener("click", () => {
     savePersistentStats();
-    showScreen("start");
-    updateReviewBanner();
-    renderCategories();
+    goHome();
 });
 
 // ================================================================
@@ -2324,9 +2518,7 @@ $("btn-lesson-practice").addEventListener("click", () => {
 // Back from lesson
 $("btn-lesson-back").addEventListener("click", () => {
     savePersistentStats();
-    showScreen("start");
-    updateReviewBanner();
-    renderCategories();
+    goHome();
 });
 
 // ===== Lesson Practice (uses its own DOM elements) =====
@@ -2991,9 +3183,7 @@ function showLessonFinalResults() {
         newList.textContent = "Exit to Menu";
         newList.addEventListener("click", () => {
             state.guidedPath = null;
-            showScreen("start");
-            updateReviewBanner();
-            renderCategories();
+            goHome();
         });
     } else {
         // Normal lesson flow
@@ -3009,9 +3199,7 @@ function showLessonFinalResults() {
         }
 
         newList.addEventListener("click", () => {
-            showScreen("start");
-            updateReviewBanner();
-            renderCategories();
+            goHome();
         });
     }
 
@@ -3372,16 +3560,13 @@ function showResults() {
             });
         } else {
             newReplay.addEventListener("click", () => {
-                showScreen("start");
-                renderCategories();
+                goHome();
             });
         }
         newCat.textContent = "Exit to Menu";
         newCat.addEventListener("click", () => {
             state.guidedPath = null;
-            showScreen("start");
-            updateReviewBanner();
-            renderCategories();
+            goHome();
         });
     } else {
         newReplay.addEventListener("click", () => {
@@ -3396,9 +3581,7 @@ function showResults() {
             }
         });
         newCat.addEventListener("click", () => {
-            showScreen("start");
-            updateReviewBanner();
-            renderCategories();
+            goHome();
         });
     }
 
@@ -3847,8 +4030,7 @@ $("btn-reset-everything").addEventListener("click", () => {
         $("level").textContent = "1";
         // Close settings and go home
         $("settings-overlay").classList.add("hidden");
-        showScreen("start");
-        renderCategories();
+        goHome();
         alert("All done — fresh start! 💪");
     }
 });
@@ -4156,9 +4338,7 @@ $("btn-scramble-hear").addEventListener("click", () => {
 
 $("btn-scramble-back").addEventListener("click", () => {
     savePersistentStats();
-    showScreen("start");
-    updateReviewBanner();
-    renderCategories();
+    goHome();
 });
 
 // ================================================================
@@ -4485,8 +4665,7 @@ $("btn-open-dashboard").addEventListener("click", () => {
 });
 
 $("btn-dashboard-back").addEventListener("click", () => {
-    showScreen("start");
-    renderCategories();
+    goHome();
 });
 
 // ================================================================
@@ -5456,8 +5635,7 @@ $("btn-read-back").addEventListener("click", () => {
     cancelJustListen();
     _stopCloudAudio();
     if ("speechSynthesis" in window) window.speechSynthesis.cancel();
-    showScreen("start");
-    renderCategories();
+    goHome();
 });
 
 $("btn-read-listen").addEventListener("click", () => {
@@ -5499,13 +5677,7 @@ $("btn-read-again").addEventListener("click", () => {
 });
 
 $("btn-read-categories").addEventListener("click", () => {
-    state.mode = "read";
-    showScreen("start");
-    // Activate the Read It tab
-    document.querySelectorAll(".mode-tab").forEach(t => t.classList.remove("active"));
-    const readTab = document.querySelector('.mode-tab[data-mode="read"]');
-    if (readTab) readTab.classList.add("active");
-    renderCategories();
+    goHome();
 });
 
 $("read-listen-first").addEventListener("change", (e) => {
@@ -6009,16 +6181,12 @@ $("btn-bee-sentence").addEventListener("click", () => {
 $("btn-bee-back").addEventListener("click", () => {
     state.spellingBee = null;
     state.guidedPath = null;
-    showScreen("start");
-    updateReviewBanner();
-    renderCategories();
+    goHome();
 });
 
 $("btn-bee-done").addEventListener("click", () => {
     state.guidedPath = null;
-    showScreen("start");
-    updateReviewBanner();
-    renderCategories();
+    goHome();
 });
 
 // ================================================================
@@ -6218,11 +6386,7 @@ function showSpeedDrillResults() {
 
 // Speed Drill event listeners
 $("btn-speed-level-back").addEventListener("click", () => {
-    state.mode = "spell";
-    document.querySelectorAll(".mode-tab").forEach(t => t.classList.remove("active"));
-    document.querySelector('.mode-tab[data-mode="spell"]').classList.add("active");
-    showScreen("start");
-    renderCategories();
+    goHome();
 });
 
 $("btn-speed-drill-back").addEventListener("click", () => {
@@ -6517,11 +6681,7 @@ $("btn-dictation-back").addEventListener("click", () => {
 });
 
 $("btn-dictation-select-back").addEventListener("click", () => {
-    state.mode = "spell";
-    document.querySelectorAll(".mode-tab").forEach(t => t.classList.remove("active"));
-    document.querySelector('.mode-tab[data-mode="spell"]').classList.add("active");
-    showScreen("start");
-    renderCategories();
+    goHome();
 });
 
 $("btn-dictation-again").addEventListener("click", () => {
@@ -6712,17 +6872,12 @@ $("btn-phoneme-replay").addEventListener("click", () => {
 
 $("btn-phoneme-menu").addEventListener("click", () => {
     state.phonemeGame = null;
-    showScreen("start");
-    renderCategories();
+    goHome();
 });
 
 $("btn-phoneme-back").addEventListener("click", () => {
     state.phonemeGame = null;
-    state.mode = "spell";
-    document.querySelectorAll(".mode-tab").forEach(t => t.classList.remove("active"));
-    document.querySelector('.mode-tab[data-mode="spell"]').classList.add("active");
-    showScreen("start");
-    renderCategories();
+    goHome();
 });
 
 // ================================================================
@@ -6954,17 +7109,12 @@ $("btn-morpheme-replay").addEventListener("click", () => startMorphemeBuilder())
 
 $("btn-morpheme-menu").addEventListener("click", () => {
     state.morphemeGame = null;
-    showScreen("start");
-    renderCategories();
+    goHome();
 });
 
 $("btn-morpheme-back").addEventListener("click", () => {
     state.morphemeGame = null;
-    state.mode = "spell";
-    document.querySelectorAll(".mode-tab").forEach(t => t.classList.remove("active"));
-    document.querySelector('.mode-tab[data-mode="spell"]').classList.add("active");
-    showScreen("start");
-    renderCategories();
+    goHome();
 });
 
 // ================================================================
@@ -7205,8 +7355,7 @@ if ($("btn-comp-retry")) $("btn-comp-retry").addEventListener("click", () => {
     }
 });
 if ($("btn-comp-done")) $("btn-comp-done").addEventListener("click", () => {
-    showScreen("start");
-    renderCategories();
+    goHome();
 });
 
 // ================================================================
@@ -7402,11 +7551,7 @@ $("btn-write-clear").addEventListener("click", () => {
 // Back
 $("btn-write-back").addEventListener("click", () => {
     if (_writeRecognition) { _writeRecognition.stop(); _writeRecognition = null; }
-    state.mode = "spell";
-    document.querySelectorAll(".mode-tab").forEach(t => t.classList.remove("active"));
-    document.querySelector('.mode-tab[data-mode="spell"]').classList.add("active");
-    showScreen("start");
-    renderCategories();
+    goHome();
 });
 
 // ================================================================
@@ -7560,18 +7705,10 @@ function showBdpqResults() {
 
 $("btn-bdpq-retry").addEventListener("click", () => startBdpqTraining());
 $("btn-bdpq-home").addEventListener("click", () => {
-    state.mode = "spell";
-    document.querySelectorAll(".mode-tab").forEach(t => t.classList.remove("active"));
-    document.querySelector('.mode-tab[data-mode="spell"]').classList.add("active");
-    showScreen("start");
-    renderCategories();
+    goHome();
 });
 $("btn-bdpq-back").addEventListener("click", () => {
-    state.mode = "spell";
-    document.querySelectorAll(".mode-tab").forEach(t => t.classList.remove("active"));
-    document.querySelector('.mode-tab[data-mode="spell"]').classList.add("active");
-    showScreen("start");
-    renderCategories();
+    goHome();
 });
 
 // ================================================================
@@ -7579,8 +7716,7 @@ $("btn-bdpq-back").addEventListener("click", () => {
 // ================================================================
 loadPersistentStats();
 syncCustomCategory();
-renderCategories();
+renderHomeScreen();
 updateStats();
 updateReviewBanner();
-loadAiRecommendation();
 updateStreakDisplay();

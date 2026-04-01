@@ -278,11 +278,6 @@ body {
 }
 
 /* ===== Screens ===== */
-.main {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-}
 
 .screen {
     display: none;
@@ -293,6 +288,12 @@ body {
 
 .screen.active {
     display: flex;
+    animation: screenEnter 0.2s ease;
+}
+
+@keyframes screenEnter {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
 .screen-title {
@@ -300,6 +301,168 @@ body {
     font-weight: 600;
     text-align: center;
     color: var(--text);
+}
+
+/* ===== Bottom Navigation ===== */
+.bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 64px;
+    display: flex;
+    background: var(--surface);
+    border-top: 1px solid rgba(0, 0, 0, 0.08);
+    z-index: 1000;
+    padding: 0 0.5rem;
+    padding-bottom: env(safe-area-inset-bottom, 0);
+}
+.bottom-nav-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.15rem;
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    padding: 0.4rem 0;
+    font-family: var(--font);
+    position: relative;
+}
+.bottom-nav-item.active {
+    color: var(--accent);
+}
+.bottom-nav-item.active::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 25%;
+    right: 25%;
+    height: 3px;
+    background: var(--accent);
+    border-radius: 0 0 3px 3px;
+}
+.bottom-nav-icon {
+    font-size: 1.4rem;
+    line-height: 1;
+}
+.bottom-nav-label {
+    font-size: 0.65rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+/* Main area */
+.main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding-bottom: 72px;
+}
+
+/* ===== Home Greeting ===== */
+.home-greeting {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    padding: 0.25rem 0;
+}
+.greeting-text {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: var(--text);
+}
+.greeting-sub {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+}
+
+/* ===== Priority Card ===== */
+.priority-card {
+    background: var(--surface);
+    border-radius: var(--radius);
+    padding: 1rem 1.25rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    border-left: 4px solid var(--accent);
+    cursor: pointer;
+    transition: all var(--transition);
+}
+.priority-card:hover {
+    box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+}
+.priority-card-icon {
+    font-size: 1.6rem;
+    flex-shrink: 0;
+}
+.priority-card-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+.priority-card-title {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text);
+}
+.priority-card-sub {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+.priority-card-action {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--accent);
+    white-space: nowrap;
+}
+
+/* ===== Sub-mode Grid ===== */
+.submode-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+}
+.submode-card {
+    background: var(--surface);
+    border: 2px solid rgba(0, 0, 0, 0.06);
+    border-radius: var(--radius);
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.4rem;
+    cursor: pointer;
+    transition: all var(--transition);
+    text-align: center;
+    font-family: var(--font);
+}
+.submode-card:hover {
+    border-color: var(--accent);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+}
+.submode-card:active {
+    transform: scale(0.97);
+}
+.submode-icon {
+    font-size: 1.8rem;
+    line-height: 1;
+}
+.submode-name {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text);
+}
+.submode-desc {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    line-height: 1.3;
 }
 
 /* ===== Category Grid ===== */
@@ -1842,12 +2005,26 @@ body.theme-dark .bg-color-btn.active::after { color: #fff; }
     }
 
     .header {
-        flex-direction: column;
-        gap: 0.75rem;
+        flex-direction: row;
+        gap: 0.5rem;
+        align-items: center;
     }
+
+    /* Hide score/level stats on mobile — streak fire is enough */
+    .stats { display: none; }
 
     .category-grid {
         grid-template-columns: 1fr;
+    }
+
+    .submode-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    /* Remove hover lift on touch devices */
+    .category-card:hover,
+    .submode-card:hover {
+        transform: none;
     }
 
     .result-card {

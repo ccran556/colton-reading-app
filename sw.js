@@ -2,7 +2,7 @@
    Colton's Reading App — Service Worker (network-first strategy)
    =================================================== */
 
-const CACHE_NAME = 'coltons-reading-app-v18';
+const CACHE_NAME = 'coltons-reading-app-v19';
 
 const APP_SHELL = [
   'index.html',

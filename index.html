@@ -47,7 +47,7 @@
 
     <div class="app hidden" id="app-main">
         <header class="header">
-            <h1 class="logo">Colton's <span class="logo-accent">App</span></h1>
+            <h1 class="logo">Colton's <span class="logo-accent">Word Lab</span></h1>
             <div class="header-right">
                 <div class="stats">
                     <div class="stat">
@@ -74,8 +74,48 @@
         <main class="main">
             <!-- Start Screen -->
             <div id="start-screen" class="screen active">
-                <!-- Mode Tabs -->
-                <div class="mode-tabs">
+                <!-- Greeting -->
+                <div class="home-greeting" id="home-greeting">
+                    <span class="greeting-text" id="greeting-text">Hey Colton</span>
+                    <span class="greeting-sub" id="greeting-sub">What do you want to work on?</span>
+                </div>
+
+                <!-- Priority Card (unified: review, daily challenge, or AI tip) -->
+                <div class="priority-card hidden" id="priority-card"></div>
+
+                <!-- Hidden legacy elements for JS compatibility -->
+                <div class="ai-recommendation hidden" id="ai-recommendation" style="display:none;">
+                    <div class="ai-recommendation-icon">💡</div>
+                    <p class="ai-recommendation-text" id="ai-recommendation-text"></p>
+                </div>
+                <div class="review-banner hidden" id="review-banner" style="display:none;">
+                    <div class="review-banner-content">
+                        <span class="review-banner-icon">🔄</span>
+                        <div class="review-banner-text">
+                            <strong id="review-count">0</strong> words ready for review
+                        </div>
+                    </div>
+                    <button class="btn btn-review" id="btn-start-review">Review Now</button>
+                </div>
+                <div class="daily-challenge hidden" id="daily-challenge" style="display:none;">
+                    <div class="daily-challenge-header">
+                        <span class="daily-challenge-icon">📅</span>
+                        <span class="daily-challenge-title">Daily Challenge</span>
+                    </div>
+                    <p class="daily-challenge-word" id="daily-word"></p>
+                    <p class="daily-challenge-hint" id="daily-hint"></p>
+                    <button class="btn btn-primary btn-sm" id="btn-daily-start">Try It</button>
+                    <span class="daily-challenge-done hidden" id="daily-done">&#10003; Completed today!</span>
+                </div>
+
+                <!-- Sub-mode cards (populated by JS based on active section) -->
+                <div class="submode-grid" id="submode-grid"></div>
+
+                <h2 class="screen-title" id="category-title" style="display:none;">Choose a Category</h2>
+                <div class="category-grid" id="category-grid"></div>
+
+                <!-- Hidden mode tabs for JS compatibility -->
+                <div class="mode-tabs" style="display:none;">
                     <button class="mode-tab active" data-mode="spell">Spell It</button>
                     <button class="mode-tab" data-mode="flash">Flashcards</button>
                     <button class="mode-tab" data-mode="scramble">Scramble</button>
@@ -88,38 +128,6 @@
                     <button class="mode-tab" data-mode="write">Write</button>
                     <button class="mode-tab" data-mode="bdpq">b/d/p/q</button>
                 </div>
-
-                <!-- AI Recommendation -->
-                <div class="ai-recommendation hidden" id="ai-recommendation">
-                    <div class="ai-recommendation-icon">💡</div>
-                    <p class="ai-recommendation-text" id="ai-recommendation-text"></p>
-                </div>
-
-                <!-- Review Banner (shown when words are due) -->
-                <div class="review-banner hidden" id="review-banner">
-                    <div class="review-banner-content">
-                        <span class="review-banner-icon">🔄</span>
-                        <div class="review-banner-text">
-                            <strong id="review-count">0</strong> words ready for review
-                        </div>
-                    </div>
-                    <button class="btn btn-review" id="btn-start-review">Review Now</button>
-                </div>
-
-                <!-- Daily Challenge -->
-                <div class="daily-challenge hidden" id="daily-challenge">
-                    <div class="daily-challenge-header">
-                        <span class="daily-challenge-icon">📅</span>
-                        <span class="daily-challenge-title">Daily Challenge</span>
-                    </div>
-                    <p class="daily-challenge-word" id="daily-word"></p>
-                    <p class="daily-challenge-hint" id="daily-hint"></p>
-                    <button class="btn btn-primary btn-sm" id="btn-daily-start">Try It</button>
-                    <span class="daily-challenge-done hidden" id="daily-done">&#10003; Completed today!</span>
-                </div>
-
-                <h2 class="screen-title">Choose a Category</h2>
-                <div class="category-grid" id="category-grid"></div>
             </div>
 
             <!-- Flashcard Screen -->
@@ -1307,6 +1315,26 @@
     <script src="storage.js"></script>
     <script src="ai.js"></script>
     <script src="badges.js"></script>
+    <!-- Bottom Navigation -->
+    <nav class="bottom-nav" id="bottom-nav">
+        <button class="bottom-nav-item active" data-section="practice">
+            <span class="bottom-nav-icon">🎯</span>
+            <span class="bottom-nav-label">Practice</span>
+        </button>
+        <button class="bottom-nav-item" data-section="learn">
+            <span class="bottom-nav-icon">📚</span>
+            <span class="bottom-nav-label">Learn</span>
+        </button>
+        <button class="bottom-nav-item" data-section="skills">
+            <span class="bottom-nav-icon">🧩</span>
+            <span class="bottom-nav-label">Skills</span>
+        </button>
+        <button class="bottom-nav-item" data-section="create">
+            <span class="bottom-nav-icon">✏️</span>
+            <span class="bottom-nav-label">Create</span>
+        </button>
+    </nav>
+
     <script src="sound.js"></script>
     <script src="app.js"></script>
     <script>
