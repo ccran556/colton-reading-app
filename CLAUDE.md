@@ -65,7 +65,7 @@ Everything uses localStorage:
 
 ### API keys
 
-- The Anthropic API key auto-configures on first load (base64 in app.js lines 3-7). Users can also set their own in Settings.
+- The Anthropic API key is entered in Settings and kept in the browser's localStorage. Never put a key in the code: this repository is public and every file is served to visitors. (A key that used to be embedded in app.js was removed on 23 Oct 2026 and must stay revoked.)
 - OpenAI TTS key is optional, set in Settings.
 
 ## Common tasks
@@ -81,3 +81,18 @@ Everything uses localStorage:
 **Add a new badge**: Add to the badge definitions in badges.js with icon, name, description, and unlock condition.
 
 **Change the PIN**: Default is 132303. Can be changed in Settings inside the app, or edit `PIN_DEFAULT` in index.html.
+
+## Railway security incident, 21 October 2026
+
+Railway disclosed that an attacker decrypted some customer environment variables
+(https://blog.railway.com/p/preliminary-report-october-security-incident). This
+app keeps no secrets in Railway variables, so there is nothing to rotate there.
+Railway also cut its GitHub integration: reconnect GitHub on the Railway service
+(Settings → Source) so pushes to `main` deploy again, then confirm the site loads.
+
+Separately, a check on 23 October 2026 found an Anthropic API key embedded
+(base64-encoded) in `app.js`. The repository is public and the file is served to
+every visitor, so that key was exposed. It has been removed from the code; the
+key itself must be deleted in the Claude Console and a new one entered in the
+app's Settings on each device. It remains in this repository's git history,
+which is why revoking it is the fix.
