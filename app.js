@@ -1,12 +1,3 @@
-// ===== Auto-configure API key on first load =====
-(function() {
-    const _p = ["c2stYW50LWFwaTAzLUJFY0", "ZaRTdUZDg4UzVOV3l6OTZx", "VFFnV3Y3ZFhGTGhWeXNQc0", "FFSWFDM3EtajNFcE14TjBi", "ZWx3ekVjdDFRZHl0ZkpnUV", "AyQ1NNRkg0YjNRbU54R2ZR", "LVdwdzgzUUFB"];
-    const _KEY_STORAGE = "coltons_app_api_key";
-    if (!localStorage.getItem(_KEY_STORAGE)) {
-        localStorage.setItem(_KEY_STORAGE, atob(_p.join("")));
-    }
-})();
-
 // ===== State =====
 const state = {
     section: "practice",    // "practice", "learn", "skills", "create"
