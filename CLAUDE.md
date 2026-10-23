@@ -81,3 +81,11 @@ Everything uses localStorage:
 **Add a new badge**: Add to the badge definitions in badges.js with icon, name, description, and unlock condition.
 
 **Change the PIN**: Default is 132303. Can be changed in Settings inside the app, or edit `PIN_DEFAULT` in index.html.
+
+## Railway security incident, 21 October 2026
+
+Railway disclosed that an attacker decrypted some customer environment variables
+(https://blog.railway.com/p/preliminary-report-october-security-incident). This app keeps no secrets on Railway (the Claude key is entered in the browser and stays on the device), so there is nothing to rotate there.
+Railway also cut its GitHub integration: reconnect GitHub on the Railway service
+(Settings → Source) so pushes to `main` deploy again, then confirm the site
+loads. Checked 23 October 2026: nothing secret is committed here.
